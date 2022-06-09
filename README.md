@@ -39,7 +39,10 @@ _____________________________________
 ## Mod Support
 * Probably one of the main points of this engine, you can code in .lua files outside of the source code, making your own weeks without even messing with the source!
 * Comes with a Mod Organizing/Disabling Menu.
-
+## Custom Features
+* Arrow Skins from dad even boyfriend
+![Screenshot_4](https://i.imgur.com/ew5Do1R.png)
+* Change Stage
 
 ## Atleast one change to every week:
 ### Week 1:
