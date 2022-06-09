@@ -26,9 +26,13 @@ typedef CharacterFile = {
 	var scale:Float;
 	var sing_duration:Float;
 	var healthicon:String;
+	var arrowSkin:String;
+	var arrowStyle:String;
+	var splashSkin:String;
 
 	var position:Array<Float>;
 	var camera_position:Array<Float>;
+	var playerCamera_position:Array<Float>;
 
 	var flip_x:Bool;
 	var no_antialiasing:Bool;
@@ -42,6 +46,7 @@ typedef AnimArray = {
 	var loop:Bool;
 	var indices:Array<Int>;
 	var offsets:Array<Int>;
+	var offsets_player:Array<Int>;
 }
 
 class Character extends FlxSprite
@@ -62,12 +67,17 @@ class Character extends FlxSprite
 	public var idleSuffix:String = '';
 	public var danceIdle:Bool = false; //Character use "danceLeft" and "danceRight" instead of "idle"
 	public var skipDance:Bool = false;
+	
 
 	public var healthIcon:String = 'face';
+	public var arrowSkin:String = 'NOTE_assets';
+	public var arrowStyle:String = 'normal';
+	public var splashSkin:String = 'noteSplashes';
 	public var animationsArray:Array<AnimArray> = [];
 
 	public var positionArray:Array<Float> = [0, 0];
 	public var cameraPosition:Array<Float> = [0, 0];
+	public var playerCameraPosition:Array<Float> = [0, 0];
 
 	public var hasMissAnimations:Bool = false;
 
@@ -111,7 +121,7 @@ class Character extends FlxSprite
 				if (!Assets.exists(path))
 				#end
 				{
-					path = Paths.getPreloadPath('characters/' + DEFAULT_CHARACTER + '.json'); //If a character couldn't be found, change him to BF just to prevent a crash
+					path = Paths.getPreloadPath('characters/$DEFAULT_CHARACTER.json'); //If a character couldn't be found, change him to BF just to prevent a crash
 				}
 
 				#if MODS_ALLOWED
@@ -175,7 +185,27 @@ class Character extends FlxSprite
 				}
 
 				positionArray = json.position;
-				cameraPosition = json.camera_position;
+				if(json.arrowSkin != null && json.arrowSkin.length > 1)
+					arrowSkin = json.arrowSkin;
+
+				if(json.arrowStyle != null && json.arrowStyle.length > 1)
+					arrowStyle = json.arrowStyle;
+
+				if(json.splashSkin != null && json.splashSkin.length > 1)
+					splashSkin = json.splashSkin;
+				
+				if(isPlayer)
+				{
+					if(json.playerCamera_position != null && json.playerCamera_position.length > 1)
+						playerCameraPosition = json.playerCamera_position;
+					else
+						playerCameraPosition = json.camera_position;
+				}
+				else
+				{
+					cameraPosition = json.camera_position;
+				}
+				
 
 				healthIcon = json.healthicon;
 				singDuration = json.sing_duration;
@@ -205,9 +235,22 @@ class Character extends FlxSprite
 							animation.addByPrefix(animAnim, animName, animFps, animLoop);
 						}
 
-						if(anim.offsets != null && anim.offsets.length > 1) {
-							addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+						if(isPlayer)
+						{
+							if(anim.offsets_player != null && anim.offsets_player.length > 1) {
+								addOffset(anim.anim, anim.offsets_player[0], anim.offsets_player[1]);
+							}
+							else if(anim.offsets != null && anim.offsets.length > 1) {
+								addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+							}
 						}
+						else
+						{
+							if(anim.offsets != null && anim.offsets.length > 1) {
+								addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+							}
+						}
+
 					}
 				} else {
 					quickAnimAdd('idle', 'BF idle dance');
@@ -215,6 +258,8 @@ class Character extends FlxSprite
 				//trace('Loaded file to character ' + curCharacter);
 		}
 		originalFlipX = flipX;
+
+		if(animOffsets.exists('singLEFTmiss'))
 
 		if(animOffsets.exists('singLEFTmiss') || animOffsets.exists('singDOWNmiss') || animOffsets.exists('singUPmiss') || animOffsets.exists('singRIGHTmiss')) hasMissAnimations = true;
 		recalculateDanceIdle();
@@ -224,33 +269,85 @@ class Character extends FlxSprite
 		{
 			flipX = !flipX;
 
-			/*// Doesn't flip for BF, since his are already in the right place???
-			if (!curCharacter.startsWith('bf'))
+			/*// Doesn't flip for BF, since his are already in the right place???*/
+			if (!curCharacter.contains('bf'))
 			{
-				// var animArray
-				if(animation.getByName('singLEFT') != null && animation.getByName('singRIGHT') != null)
+				var oldRight = animation.getByName('singRIGHT').frames;
+				animation.getByName('singRIGHT').frames = animation.getByName('singLEFT').frames;
+				animation.getByName('singLEFT').frames = oldRight;
+
+				if (animation.getByName('singRIGHTmiss') != null && animation.getByName('singLEFTmiss') != null)
 				{
-					var oldRight = animation.getByName('singRIGHT').frames;
-					animation.getByName('singRIGHT').frames = animation.getByName('singLEFT').frames;
-					animation.getByName('singLEFT').frames = oldRight;
+					var oldRight = animation.getByName('singRIGHTmiss').frames;
+					animation.getByName('singRIGHTmiss').frames = animation.getByName('singLEFTmiss').frames;
+					animation.getByName('singLEFTmiss').frames = oldRight;
 				}
 
-				// IF THEY HAVE MISS ANIMATIONS??
-				if (animation.getByName('singLEFTmiss') != null && animation.getByName('singRIGHTmiss') != null)
+				if (animation.getByName('singRIGHT-alt') != null && animation.getByName('singLEFT-alt') != null)
 				{
-					var oldMiss = animation.getByName('singRIGHTmiss').frames;
-					animation.getByName('singRIGHTmiss').frames = animation.getByName('singLEFTmiss').frames;
-					animation.getByName('singLEFTmiss').frames = oldMiss;
+					var oldRight = animation.getByName('singRIGHT-alt').frames;
+					animation.getByName('singRIGHT-alt').frames = animation.getByName('singLEFT-alt').frames;
+					animation.getByName('singLEFT-alt').frames = oldRight;
 				}
-			}*/
+
+				if (animation.getByName('singRIGHT-loop') != null && animation.getByName('singLEFT-loop') != null)
+				{
+					var oldRight = animation.getByName('singRIGHT-loop').frames;
+					animation.getByName('singRIGHT-loop').frames = animation.getByName('singLEFT-loop').frames;
+					animation.getByName('singLEFT-loop').frames = oldRight;
+				}
+
+				if (animation.getByName('singRIGHT-alt-loop') != null && animation.getByName('singLEFT-alt-loop') != null)
+				{
+					var oldRight = animation.getByName('singRIGHT-alt-loop').frames;
+					animation.getByName('singRIGHT-alt-loop').frames = animation.getByName('singLEFT-alt-loop').frames;
+					animation.getByName('singLEFT-alt-loop').frames = oldRight;
+				}
+			}
+		}
+		else
+		{
+			if (curCharacter.contains('bf'))
+			{
+				var oldRight = animation.getByName('singRIGHT').frames;
+				animation.getByName('singRIGHT').frames = animation.getByName('singLEFT').frames;
+				animation.getByName('singLEFT').frames = oldRight;
+
+				if (animation.getByName('singRIGHTmiss') != null && animation.getByName('singLEFTmiss') != null)
+				{
+					var oldRight = animation.getByName('singRIGHTmiss').frames;
+					animation.getByName('singRIGHTmiss').frames = animation.getByName('singLEFTmiss').frames;
+					animation.getByName('singLEFTmiss').frames = oldRight;
+				}
+
+				if (animation.getByName('singRIGHT-alt') != null && animation.getByName('singLEFT-alt') != null)
+				{
+					var oldRight = animation.getByName('singRIGHT-alt').frames;
+					animation.getByName('singRIGHT-alt').frames = animation.getByName('singLEFT-alt').frames;
+					animation.getByName('singLEFT-alt').frames = oldRight;
+				}
+
+				if (animation.getByName('singRIGHT-loop') != null && animation.getByName('singLEFT-loop') != null)
+				{
+					var oldRight = animation.getByName('singRIGHT-loop').frames;
+					animation.getByName('singRIGHT-loop').frames = animation.getByName('singLEFT-loop').frames;
+					animation.getByName('singLEFT-loop').frames = oldRight;
+				}
+
+				if (animation.getByName('singRIGHT-alt-loop') != null && animation.getByName('singLEFT-alt-loop') != null)
+				{
+					var oldRight = animation.getByName('singRIGHT-alt-loop').frames;
+					animation.getByName('singRIGHT-alt-loop').frames = animation.getByName('singLEFT-alt-loop').frames;
+					animation.getByName('singLEFT-alt-loop').frames = oldRight;
+				}
+			}
 		}
 
-		switch(curCharacter)
+		if(curCharacter == 'pico-speaker')
 		{
-			case 'pico-speaker':
-				skipDance = true;
-				loadMappedAnims();
-				playAnim("shoot1");
+			skipDance = true;
+			loadMappedAnims();
+			playAnim("shoot1");
 		}
 	}
 
@@ -275,20 +372,19 @@ class Character extends FlxSprite
 				specialAnim = false;
 				dance();
 			}
-			
-			switch(curCharacter)
-			{
-				case 'pico-speaker':
-					if(animationNotes.length > 0 && Conductor.songPosition > animationNotes[0][0])
-					{
-						var noteData:Int = 1;
-						if(animationNotes[0][1] > 2) noteData = 3;
 
-						noteData += FlxG.random.int(0, 1);
-						playAnim('shoot' + noteData, true);
-						animationNotes.shift();
-					}
-					if(animation.curAnim.finished) playAnim(animation.curAnim.name, false, false, animation.curAnim.frames.length - 3);
+			if(curCharacter == 'pico-speaker')
+			{
+				if(animationNotes.length > 0 && Conductor.songPosition > animationNotes[0][0])
+				{
+					var noteData:Int = 1;
+					if(animationNotes[0][1] > 2) noteData = 3;
+
+					noteData += FlxG.random.int(0, 1);
+					playAnim('shoot' + noteData, true);
+					animationNotes.shift();
+				}
+				if(animation.curAnim.finished) playAnim(animation.curAnim.name, false, false, animation.curAnim.frames.length - 3);
 			}
 
 			if (!isPlayer)
@@ -298,7 +394,7 @@ class Character extends FlxSprite
 					holdTimer += elapsed;
 				}
 
-				if (holdTimer >= Conductor.stepCrochet * 0.0011 * singDuration)
+				if (holdTimer >= Conductor.stepCrochet * 0.001 * singDuration)
 				{
 					dance();
 					holdTimer = 0;
@@ -367,7 +463,7 @@ class Character extends FlxSprite
 			}
 		}
 	}
-	
+
 	function loadMappedAnims():Void
 	{
 		var noteData:Array<SwagSection> = Song.loadFromJson('picospeaker', Paths.formatToSongPath(PlayState.SONG.song)).notes;
