@@ -49,11 +49,13 @@ class Note extends FlxSprite
 	public var eventVal2:String = '';
 
 	public var colorSwap:ColorSwap;
-	public var isNoteType:Bool = false;
 	public var inEditor:Bool = false;
+	public var animSuffix:String = '';
+
 	public var gfNote:Bool = false;
-	public var opponentNote:Bool = false;
-	private var earlyHitMult:Float = 0.5;
+	public var earlyHitMult:Float = 0.5;
+	public var lateHitMult:Float = 1;
+	public var lowPriority:Bool = false;
 
 	public static var swagWidth:Float = 160 * 0.7;
 	public static var PURP_NOTE:Int = 0;
@@ -176,8 +178,6 @@ class Note extends FlxSprite
 					noMissAnimation = true;
 				case 'GF Sing':
 					gfNote = true;
-				case 'Opponent Sing':
-					opponentNote = true;
 			}
 			noteType = value;
 		}
@@ -206,7 +206,7 @@ class Note extends FlxSprite
 
 		this.noteData = noteData;
 
-		if(!isNoteType) noteSplashTexture = PlayState.instance.boyfriend.splashSkin;
+		if(noteType == "") noteSplashTexture = PlayState.instance.boyfriend.splashSkin;
 
 		if(noteData > -1) {
 			texture = '';
@@ -326,6 +326,9 @@ class Note extends FlxSprite
 			animName = animation.curAnim.name;
 		}
 
+		var wasPixelNote:Bool = style.contains('pixel');
+		var becomePixelNote:Bool = styleStuff.contains('pixel');
+
 		var arraySkin:Array<String> = skin.split('/');
 		arraySkin[arraySkin.length-1] = prefix + arraySkin[arraySkin.length-1] + suffix;
 
@@ -362,6 +365,17 @@ class Note extends FlxSprite
 
 		if(isSustainNote) {
 			scale.y = lastScaleY;
+			if (wasPixelNote && !becomePixelNote) //fixes the scaling
+			{
+				scale.y /= PlayState.daPixelZoom;
+				scale.y *= 0.7;
+			}
+
+			if (becomePixelNote && !wasPixelNote) //fixes the scaling
+			{
+				scale.y /= 0.7;
+				scale.y *= PlayState.daPixelZoom;
+			}			
 		}
 		updateHitbox();
 		
