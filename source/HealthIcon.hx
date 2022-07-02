@@ -1,12 +1,8 @@
 package;
 
+import flixel.graphics.FlxGraphic;
 import flixel.FlxSprite;
-#if MODS_ALLOWED
-import sys.io.File;
-import sys.FileSystem;
-#end
-import openfl.utils.AssetType;
-import openfl.utils.Assets;
+import openfl.utils.Assets as OpenFlAssets;
 
 using StringTools;
 
@@ -14,8 +10,9 @@ class HealthIcon extends FlxSprite
 {
 	public var sprTracker:FlxSprite;
 	private var isOldIcon:Bool = false;
-	private var isAnimated:Bool = false;
 	private var isPlayer:Bool = false;
+	private var isWinner:Bool = false;
+	private var isEmotionStuff:Bool = false;
 	public var char:String = '';
 
 	public function new(char:String = 'bf', isPlayer:Bool = false)
@@ -40,59 +37,50 @@ class HealthIcon extends FlxSprite
 		else changeIcon('bf');
 	}
 
-	public var iconOffsets:Array<Float> = [0, 0];
-	var spriteType = "bitmapData";
+	private var iconOffsets:Array<Float> = [0, 0];
 	public function changeIcon(char:String) {
 		if(this.char != char) {
 			var name:String = 'icons/' + char;
-			
 			if(!Paths.fileExists('images/' + name + '.png', IMAGE)) name = 'icons/icon-' + char; //Older versions of psych engine's support
-			if(!Paths.fileExists('images/' + name + '.png', IMAGE)) name = 'icons/icon-face';
+			if(!Paths.fileExists('images/' + name + '.png', IMAGE)) name = 'icons/icon-face'; //Prevents crash from missing icon
+			var file:FlxGraphic = Paths.image(name);
 
-			#if MODS_ALLOWED
-			var modXmlToFind:String = Paths.modsXml(name);
-			var xmlToFind:String = Paths.getPath('images/' + name + '.xml', TEXT);
-			if (FileSystem.exists(modXmlToFind) || FileSystem.exists(xmlToFind) || Assets.exists(xmlToFind))
-			#else
-			if (Assets.exists(Paths.getPath('images/' + name + '.xml', TEXT)))
-			#end
+			loadGraphic(file); //Load stupidly first for getting the file size
+			if(file.width == 450)
 			{
-				spriteType = "sparrow";
+				loadGraphic(file, true, Math.floor(width / 3), Math.floor(height)); //Then load it fr
+				iconOffsets[0] = (width - 150) / 2;
+				iconOffsets[1] = (width - 150) / 2;
+				iconOffsets[2] = (width - 150) / 2;
+				updateHitbox();
+	
+				animation.add(char, [0, 1, 2], 0, false, isPlayer);
+				isWinner = true;
+				isEmotionStuff = false;
 			}
-
-			#if MODS_ALLOWED
-			var modImageToFind:String = Paths.modsImages(name + '-3');
-			var imageToFind:String = Paths.getPath('images/' + name + '-3' + '.png', IMAGE);
-			if (FileSystem.exists(modImageToFind) || FileSystem.exists(imageToFind) || Assets.exists(imageToFind))
-			#else
-			if (Assets.exists(Paths.getPath('images/' + name + '-3' + '.png', IMAGE)))
-			#end
+			else if(file.width == 750)
 			{
-				spriteType = "icon3";
+				loadGraphic(file, true, Math.floor(width / 5), Math.floor(height)); //Then load it fr
+				iconOffsets[0] = (width - 150) / 2;
+				iconOffsets[1] = (width - 150) / 2;
+				iconOffsets[2] = (width - 150) / 2;
+				iconOffsets[3] = (width - 150) / 2;
+				iconOffsets[4] = (width - 150) / 2;
+				updateHitbox();
+				animation.add(char, [0, 1, 2, 3, 4], 0, false, isPlayer);
+				isWinner = false;
+				isEmotionStuff = true;
 			}
-
-			switch (spriteType){
-				case "bitmapData":
-					var file:Dynamic = Paths.image(name);
-					loadGraphic(file); //Load stupidly first for getting the file size
-					loadGraphic(file, true, Math.floor(width / 2), Math.floor(height)); //Then load it fr
-					iconOffsets[0] = (width - 150) / 2;
-					iconOffsets[1] = (width - 150) / 2;
-					updateHitbox();
-		
-					animation.add(char, [0, 1], 0, false, isPlayer);
-				case "icon3":
-					var file:Dynamic = Paths.image(name + '-3');
-					loadGraphic(file); //Load stupidly first for getting the file size
-					loadGraphic(file, true, Math.floor(width / 3), Math.floor(height)); //Then load it fr
-					iconOffsets[0] = (width - 150) / 2;
-					iconOffsets[1] = (width - 150) / 2;
-					iconOffsets[2] = (width - 150) / 2;
-					animation.add(char, [0, 1, 2], 0, false, isPlayer);
-					updateHitbox();
-				case "sparrow":
-					frames = Paths.getSparrowAtlas(name);
-					animation.addByPrefix(char, 'icon', 24, true, isPlayer);
+			else
+			{
+				loadGraphic(file, true, Math.floor(width / 2), Math.floor(height)); //Then load it fr
+				iconOffsets[0] = (width - 150) / 2;
+				iconOffsets[1] = (width - 150) / 2;
+				updateHitbox();
+	
+				animation.add(char, [0, 1], 0, false, isPlayer);
+				isWinner = false;
+				isEmotionStuff = false;
 			}
 
 			animation.play(char);
@@ -116,16 +104,28 @@ class HealthIcon extends FlxSprite
 		return char;
 	}
 
-	public dynamic function updateAnim(health:Float){ // Dynamic to prevent having like 20 if statements
-		if(spriteType == 'icon3')
+	public function updateAnims(health:Float) {
+		if(isWinner)
 		{
-			if (health < 20) {
+			if (health < 20)
 				animation.curAnim.curFrame = 1;
-			} else if (health > 80) {
+			else if (health > 80)
 				animation.curAnim.curFrame = 2;
-			} else {
+			else
 				animation.curAnim.curFrame = 0;
-			}
+		}
+		else if(isEmotionStuff)
+		{
+			if (health < 20)
+				animation.curAnim.curFrame = 1;
+			else if (health > 20 && health < 30)
+				animation.curAnim.curFrame = 2;
+			else if (health > 70 && health < 80)
+				animation.curAnim.curFrame = 3;
+			else if (health > 80)
+				animation.curAnim.curFrame = 4;
+			else
+				animation.curAnim.curFrame = 0;
 		}
 		else
 		{

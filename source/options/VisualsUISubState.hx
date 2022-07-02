@@ -98,6 +98,14 @@ class VisualsUISubState extends BaseOptionsMenu
 		addOption(option);
 		option.onChange = onChangeFPSCounter;
 		#end
+
+		var option:Option = new Option('BETADCIU and Bonus Songs',
+			'If checked, you can play BETADCIU or Cover Songs.',
+			'betadciu',
+			'bool',
+			false);
+		addOption(option);
+		option.onChange = onChangeFPSCounter;
 		
 		var option:Option = new Option('Pause Screen Song:',
 			"What song do you prefer for the Pause Screen?",
