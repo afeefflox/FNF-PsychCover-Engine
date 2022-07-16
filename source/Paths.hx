@@ -19,7 +19,9 @@ import sys.FileSystem;
 #end
 import flixel.graphics.FlxGraphic;
 import openfl.display.BitmapData;
+import flxanimate.frames.FlxAnimateFrames;
 import haxe.Json;
+import animate.FlxAnimate;
 
 import flash.media.Sound;
 
@@ -43,6 +45,7 @@ class Paths
 		'videos',
 		'images',
 		'stages',
+		'objects',
 		'weeks',
 		'fonts',
 		'scripts',
@@ -109,7 +112,9 @@ class Paths
 		}
 		// flags everything to be cleared out next unused memory clear
 		localTrackedAssets = [];
-		openfl.Assets.cache.clear("songs");
+		openfl.Assets.cache.clear("assets/songs");
+		openfl.Assets.cache.clear("mods");
+		openfl.Assets.cache.clear("assets/characters");
 	}
 
 	static public var currentModDirectory:String = '';
@@ -307,6 +312,20 @@ class Paths
 		#end
 	}
 
+	inline static public function getTextureAtlas(key:String, ?library:String):FlxAtlasFrames
+	{
+		#if MODS_ALLOWED
+		var imageLoaded:FlxGraphic = returnGraphic(key);
+		var jsonExists:Bool = false;
+		if(FileSystem.exists(modsJson2('$key/spritemap'))) {
+			jsonExists = true;
+		}
+	
+		return FlxAnimate.fromAnimate((imageLoaded != null ? imageLoaded : image('$key/spritemap', library)), (jsonExists ? File.getContent(modsJson2('$key/spritemap')) : file('images/$key/spritemap.json', library)));
+		#else
+		return FlxAnimate.fromAnimate(image('$key/spritemap', library), file('images/$key/spritemap.json', library));
+		#end
+	}
 
 	inline static public function getPackerAtlas(key:String, ?library:String)
 	{
@@ -403,6 +422,10 @@ class Paths
 		return modFolders('data/' + key + '.json');
 	}
 
+	inline static public function modsJson2(key:String) {
+		return modFolders('images/' + key + '.json');
+	}
+
 	inline static public function modsVideo(key:String) {
 		return modFolders('videos/' + key + '.' + VIDEO_EXT);
 	}
@@ -461,9 +484,10 @@ class Paths
 
 	static public function pushGlobalMods(){ // prob a better way to do this but idc
 		globalMods = [];
-		if (FileSystem.exists("modsList.txt"))
+		var path:String = 'modsList.txt';
+		if(FileSystem.exists(path))
 		{
-			var list:Array<String> = CoolUtil.listFromString(File.getContent("modsList.txt"));
+			var list:Array<String> = CoolUtil.coolTextFile(path);
 			for (i in list)
 			{
 				var dat = i.split("|");
@@ -479,7 +503,7 @@ class Paths
 								var global:Bool = Reflect.getProperty(stuff, "runsGlobally");
 								if(global)globalMods.push(dat[0]);
 							}
-						}catch(e:Dynamic){
+						} catch(e:Dynamic){
 							trace(e);
 						}
 					}

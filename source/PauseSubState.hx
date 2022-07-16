@@ -136,8 +136,10 @@ class PauseSubState extends MusicBeatSubstate
 	}
 
 	var holdTime:Float = 0;
+	var cantUnpause:Float = 0.1;
 	override function update(elapsed:Float)
 	{
+		cantUnpause -= elapsed;
 		if (pauseMusic.volume < 0.5)
 			pauseMusic.volume += 0.01 * elapsed;
 
@@ -188,7 +190,7 @@ class PauseSubState extends MusicBeatSubstate
 				}
 		}
 
-		if (accepted)
+		if (accepted && (cantUnpause <= 0 || !ClientPrefs.controllerMode))
 		{
 			if (menuItems == difficultyChoices)
 			{
@@ -260,9 +262,18 @@ class PauseSubState extends MusicBeatSubstate
 				case "Exit to menu":
 					PlayState.deathCounter = 0;
 					PlayState.seenCutscene = false;
+
+					WeekData.loadTheFirstEnabledMod();
 					if(PlayState.isStoryMode) {
 						MusicBeatState.switchState(new StoryMenuState());
-					} else {
+					}
+					else if(PlayState.isBETADCIU) {
+						MusicBeatState.switchState(new BETADCIUState());
+					}
+					else if(PlayState.isBonus) {
+						MusicBeatState.switchState(new BonusState());
+					}
+					else {
 						MusicBeatState.switchState(new FreeplayState());
 					}
 					PlayState.cancelMusicFadeTween();

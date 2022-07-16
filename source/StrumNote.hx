@@ -79,7 +79,7 @@ class StrumNote extends FlxSprite
 				animation.add('red', [7]);
 				animation.add('blue', [5]);
 				animation.add('purple', [4]);
-				switch (Math.abs(noteData))
+				switch (Math.abs(noteData) % 4)
 				{
 					case 0:
 						animation.add('static', [0]);
@@ -108,7 +108,7 @@ class StrumNote extends FlxSprite
 				antialiasing = ClientPrefs.globalAntialiasing;
 				setGraphicSize(Std.int(width * 0.7));
 	
-				switch (Math.abs(noteData))
+				switch (Math.abs(noteData) % 4)
 				{
 					case 0:
 						animation.addByPrefix('static', 'arrowLEFT');

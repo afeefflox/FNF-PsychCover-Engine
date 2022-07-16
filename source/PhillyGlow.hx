@@ -7,15 +7,20 @@ class PhillyGlowParticle extends FlxSprite
 	var lifeTime:Float = 0;
 	var decay:Float = 0;
 	var originalScale:Float = 1;
+	public var intendedAlpha:Float = 1;
 	public function new(x:Float, y:Float, color:FlxColor)
 	{
 		super(x, y);
 		this.color = color;
 
-		loadGraphic(Paths.image('philly/particle'));
+		loadGraphic(Paths.image('philly/particle', 'week3'));
 		antialiasing = ClientPrefs.globalAntialiasing;
 		lifeTime = FlxG.random.float(0.6, 0.9);
 		decay = FlxG.random.float(0.8, 1);
+		if(!ClientPrefs.flashing){
+			decay *= 0.5;
+			alpha = 0.5;
+		}
 
 		originalScale = FlxG.random.float(0.75, 1);
 		scale.set(originalScale, originalScale);
@@ -45,12 +50,13 @@ class PhillyGlowGradient extends FlxSprite
 {
 	public var originalY:Float;
 	public var originalHeight:Int = 400;
+	public var intendedAlpha:Float = 1;
 	public function new(x:Float, y:Float)
 	{
 		super(x, y);
 		originalY = y;
 
-		loadGraphic(Paths.image('philly/gradient'));
+		loadGraphic(Paths.image('philly/gradient', 'week3'));
 		antialiasing = ClientPrefs.globalAntialiasing;
 		scrollFactor.set(0, 0.75);
 		setGraphicSize(2000, originalHeight);
@@ -62,7 +68,7 @@ class PhillyGlowGradient extends FlxSprite
 		var newHeight:Int = Math.round(height - 1000 * elapsed);
 		if(newHeight > 0)
 		{
-			alpha = 1;
+			alpha = intendedAlpha;
 			setGraphicSize(2000, newHeight);
 			updateHitbox();
 			y = originalY + (originalHeight - height);
@@ -81,6 +87,6 @@ class PhillyGlowGradient extends FlxSprite
 		setGraphicSize(2000, originalHeight);
 		updateHitbox();
 		y = originalY;
-		alpha = 1;
+		alpha = intendedAlpha;
 	}
 }

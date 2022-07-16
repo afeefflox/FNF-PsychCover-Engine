@@ -35,6 +35,8 @@ import flixel.util.FlxColor;
 import flixel.util.FlxTimer;
 import lime.app.Application;
 import openfl.Assets;
+import flixel.graphics.frames.FlxFrame;
+import flixel.math.FlxMath;
 
 using StringTools;
 typedef TitleData =
@@ -62,6 +64,9 @@ class TitleState extends MusicBeatState
 	var credTextShit:Alphabet;
 	var textGroup:FlxGroup;
 	var ngSpr:FlxSprite;
+
+	var titleTextColors:Array<FlxColor> = [0xFF33FFFF, 0xFF3333CC];
+	var titleTextAlphas:Array<Float> = [1, .64];
 
 	var curWacky:Array<String> = [];
 
@@ -212,11 +217,15 @@ class TitleState extends MusicBeatState
 				});
 			}
 			#end
-
-			new FlxTimer().start(1, function(tmr:FlxTimer)
-			{
+			if (initialized)
 				startIntro();
-			});
+			else
+			{
+				new FlxTimer().start(1, function(tmr:FlxTimer)
+				{
+					startIntro();
+				});				
+			}
 		}
 		#end
 	}
@@ -231,27 +240,6 @@ class TitleState extends MusicBeatState
 	{
 		if (!initialized)
 		{
-			/*var diamond:FlxGraphic = FlxGraphic.fromClass(GraphicTransTileDiamond);
-			diamond.persist = true;
-			diamond.destroyOnNoUse = false;
-
-			FlxTransitionableState.defaultTransIn = new TransitionData(FADE, FlxColor.BLACK, 1, new FlxPoint(0, -1), {asset: diamond, width: 32, height: 32},
-				new FlxRect(-300, -300, FlxG.width * 1.8, FlxG.height * 1.8));
-			FlxTransitionableState.defaultTransOut = new TransitionData(FADE, FlxColor.BLACK, 0.7, new FlxPoint(0, 1),
-				{asset: diamond, width: 32, height: 32}, new FlxRect(-300, -300, FlxG.width * 1.8, FlxG.height * 1.8));
-
-			transIn = FlxTransitionableState.defaultTransIn;
-			transOut = FlxTransitionableState.defaultTransOut;*/
-
-			// HAD TO MODIFY SOME BACKEND SHIT
-			// IF THIS PR IS HERE IF ITS ACCEPTED UR GOOD TO GO
-			// https://github.com/HaxeFlixel/flixel-addons/pull/348
-
-			// var music:FlxSound = new FlxSound();
-			// music.loadStream(Paths.music('freakyMenu'));
-			// FlxG.sound.list.add(music);
-			// music.play();
-
 			if(FlxG.sound.music == null) {
 				FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
 			}
@@ -342,8 +330,24 @@ class TitleState extends MusicBeatState
 
 		titleText.frames = Paths.getSparrowAtlas('titleEnter');
 		#end
-		titleText.animation.addByPrefix('idle', "Press Enter to Begin", 24);
-		titleText.animation.addByPrefix('press', "ENTER PRESSED", 24);
+		var animFrames:Array<FlxFrame> = [];
+		@:privateAccess {
+			titleText.animation.findByPrefix(animFrames, "ENTER IDLE");
+			titleText.animation.findByPrefix(animFrames, "ENTER FREEZE");
+		}
+
+		if (animFrames.length > 0) {
+			newTitle = true;
+
+			titleText.animation.addByPrefix('idle', "ENTER IDLE", 24);
+			titleText.animation.addByPrefix('press', ClientPrefs.flashing ? "ENTER PRESSED" : "ENTER FREEZE", 24);
+		}
+		else {
+			newTitle = false;
+
+			titleText.animation.addByPrefix('idle', "Press Enter to Begin", 24);
+			titleText.animation.addByPrefix('press', "ENTER PRESSED", 24);
+		}
 		titleText.antialiasing = ClientPrefs.globalAntialiasing;
 		titleText.animation.play('idle');
 		titleText.updateHitbox();
@@ -407,6 +411,8 @@ class TitleState extends MusicBeatState
 
 	var transitioning:Bool = false;
 	private static var playJingle:Bool = false;
+	var newTitle:Bool = false;
+	var titleTimer:Float = 0;
 
 	override function update(elapsed:Float)
 	{
@@ -426,6 +432,11 @@ class TitleState extends MusicBeatState
 		}
 		#end
 
+		if (newTitle) {
+			titleTimer += CoolUtil.boundTo(elapsed, 0, 1);
+			if (titleTimer > 2) titleTimer -= 2;
+		}
+
 		var gamepad:FlxGamepad = FlxG.gamepads.lastActive;
 
 		if (gamepad != null)
@@ -443,11 +454,26 @@ class TitleState extends MusicBeatState
 
 		if (initialized && !transitioning && skippedIntro)
 		{
+			if (newTitle && !pressedEnter)
+			{
+				var timer:Float = titleTimer;
+				if (timer >= 1)
+					timer = (-timer) + 2;
+
+				timer = FlxEase.quadInOut(timer);
+
+				titleText.color = FlxColor.interpolate(titleTextColors[0], titleTextColors[1], timer);
+				titleText.alpha = FlxMath.lerp(titleTextAlphas[0], titleTextAlphas[1], timer);
+			}
+
 			if(pressedEnter)
 			{
+				titleText.color = FlxColor.WHITE;
+				titleText.alpha = 1;
+
 				if(titleText != null) titleText.animation.play('press');
 
-				FlxG.camera.flash(FlxColor.WHITE, 1);
+				FlxG.camera.flash(ClientPrefs.flashing ? FlxColor.WHITE : 0x4CFFFFFF, 1);
 				FlxG.sound.play(Paths.sound('confirmMenu'), 0.7);
 
 				transitioning = true;
@@ -500,6 +526,10 @@ class TitleState extends MusicBeatState
 								}
 							});
 							FlxG.sound.music.fadeOut();
+							if(FreeplayState.vocals != null)
+							{
+								FreeplayState.vocals.fadeOut();
+							}
 							closedState = true;
 							transitioning = true;
 							playJingle = true;
@@ -582,7 +612,7 @@ class TitleState extends MusicBeatState
 			switch (sickBeats)
 			{
 				case 1:
-					FlxG.sound.music.stop();
+					//FlxG.sound.music.stop();
 					FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
 					FlxG.sound.music.fadeIn(4, 0, 0.7);
 				case 2:
@@ -723,6 +753,10 @@ class TitleState extends MusicBeatState
 				if(easteregg == 'SHADOW')
 				{
 					FlxG.sound.music.fadeOut();
+					if(FreeplayState.vocals != null)
+					{
+						FreeplayState.vocals.fadeOut();
+					}
 				}
 				#end
 			}

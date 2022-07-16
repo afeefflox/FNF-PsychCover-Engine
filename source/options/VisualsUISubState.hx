@@ -100,7 +100,7 @@ class VisualsUISubState extends BaseOptionsMenu
 		#end
 
 		var option:Option = new Option('BETADCIU and Bonus Songs',
-			'If checked, you can play BETADCIU or Cover Songs.',
+			'If checked, you can access play BETADCIU or Cover Songs.',
 			'betadciu',
 			'bool',
 			false);
@@ -116,6 +116,19 @@ class VisualsUISubState extends BaseOptionsMenu
 		addOption(option);
 		option.onChange = onChangePauseMusic;
 
+		var option:Option = new Option("Countdown",
+			'If unchecked, it will be straight to play having not countdown the songs',
+			'countdown',
+			'bool',
+			true);
+		addOption(option);
+
+		var option:Option = new Option('Showcase Mode',
+			'If checked, it will hidden allow HUD elements most of then and enables botplay',
+			'showcaseMode',
+			'bool',
+			false);
+		addOption(option);
 		super();
 	}
 

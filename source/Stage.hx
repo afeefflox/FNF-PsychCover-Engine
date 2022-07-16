@@ -36,8 +36,7 @@ import BGSprite;
 import BackgroundGirls;
 import BackgroundDancer;
 import WiggleEffect;
-import FunkinLua;
-
+import FunkinStage;
 using StringTools;
 
 class Stage extends FlxTypedGroup<FlxBasic>
@@ -46,7 +45,10 @@ class Stage extends FlxTypedGroup<FlxBasic>
     public var defaultCamZoom:Float = 1.05;
     public static var DEFAULT_STAGE:String = 'stage'; //In case a stage is missing, it will use Stage on its place
 	public static var instance:Stage;
+	public var luaArray:Array<FunkinStage> = [];
     public var foreground:FlxTypedGroup<FlxBasic> = new FlxTypedGroup<FlxBasic>(); // stuff layered above every other layer
+	public var swagBacks:Map<String,Dynamic> = []; // Store BGs here to use them later (for example with slowBacks, using your custom stage event or to adjust position in stage debug menu(press 8 while in PlayState with debug build of the game))
+	public var swagGroup:Map<String, FlxTypedGroup<Dynamic>> = []; // Store Groups
     public var overlay:FlxSpriteGroup = new FlxSpriteGroup(); // stuff that goes into the HUD camera. Layered before UI elements, still
     public var layers:Map<String,FlxTypedGroup<FlxBasic>> = [
         "boyfriend"=>new FlxTypedGroup<FlxBasic>(), // stuff that should be layered infront of all characters, but below the foreground
@@ -101,6 +103,7 @@ class Stage extends FlxTypedGroup<FlxBasic>
 	public var tankmanRun:FlxTypedGroup<TankmenBG>;
 	public var foregroundSprites:FlxTypedGroup<BGSprite>;
 
+	//Lua
     public function new(?stage:String = 'stage')
     {
         super();
@@ -109,6 +112,29 @@ class Stage extends FlxTypedGroup<FlxBasic>
 
         switch(curStage)
         {
+			default:
+				#if (MODS_ALLOWED && LUA_ALLOWED)
+				var doPush:Bool = false;
+				var luaFile:String = 'stages/' + curStage + '.lua';
+				if(FileSystem.exists(Paths.modFolders(luaFile))) {
+					luaFile = Paths.modFolders(luaFile);
+					doPush = true;
+				} else {
+					luaFile = Paths.getPreloadPath(luaFile);
+					if(FileSystem.exists(luaFile)) {
+						doPush = true;
+					}
+				}
+		
+				if(doPush)
+					luaArray.push(new FunkinStage(luaFile));
+				#end
+
+				if (luaArray.length > 0)
+				{
+					callOnLuas('onCreate', []);
+					callOnLuas('onCreatePost', []);
+				}
 			case 'stage':
 				var bg:BGSprite = new BGSprite('stageback', -600, -200, 0.9, 0.9);
 				add(bg);
@@ -195,6 +221,7 @@ class Stage extends FlxTypedGroup<FlxBasic>
 
 				phillyGlowGradient = new PhillyGlow.PhillyGlowGradient(-400, 225); //This shit was refusing to properly load FlxGradient so fuck it
 				phillyGlowGradient.visible = false;
+				if(!ClientPrefs.flashing) phillyGlowGradient.intendedAlpha = 0.7;
 				add(phillyGlowGradient);
 
 				phillyGlowParticles = new FlxTypedGroup<PhillyGlow.PhillyGlowParticle>();
@@ -297,6 +324,10 @@ class Stage extends FlxTypedGroup<FlxBasic>
 				var evilSnow:BGSprite = new BGSprite('christmas/evilSnow','week5', -200, 700);
 				add(evilSnow);
 			case 'school':
+				GameOverSubstate.deathSoundName = 'fnf_loss_sfx-pixel';
+				GameOverSubstate.loopSoundName = 'gameOver-pixel';
+				GameOverSubstate.endSoundName = 'gameOverEnd-pixel';
+
 				var bgSky:BGSprite = new BGSprite('weeb/weebSky', 0, 0, 0.1, 0.1);
 				add(bgSky);
 				bgSky.antialiasing = false;
@@ -358,7 +389,6 @@ class Stage extends FlxTypedGroup<FlxBasic>
 				GameOverSubstate.deathSoundName = 'fnf_loss_sfx-pixel';
 				GameOverSubstate.loopSoundName = 'gameOver-pixel';
 				GameOverSubstate.endSoundName = 'gameOverEnd-pixel';
-				GameOverSubstate.characterName = 'bf-pixel-dead';
 
 				var posX = 400;
 				var posY = 200;
@@ -384,9 +414,6 @@ class Stage extends FlxTypedGroup<FlxBasic>
 					add(bg);
 				}
 			case 'tank':
-				//Blah Blah Week 7 New is Better
-				if (songName == 'stress') GameOverSubstate.characterName = 'bf-holding-gf-dead';
-
 				var sky:BGSprite = new BGSprite('tankSky','week7', -400, -400, 0, 0);
 				add(sky);
 
@@ -450,7 +477,6 @@ class Stage extends FlxTypedGroup<FlxBasic>
 
     var lightningStrikeBeat:Int = 0;
 	var lightningOffset:Int = 8;
-
     function lightningStrikeShit(curBeat:Int):Void
     {
 		FlxG.sound.play(Paths.soundRandom('thunder_', 1, 2));
@@ -618,6 +644,11 @@ class Stage extends FlxTypedGroup<FlxBasic>
     override function update(elapsed:Float)
     {
         super.update(elapsed);
+		if(luaArray.length > 0)
+		{
+			callOnLuas('onUpdate', [elapsed]);
+			callOnLuas('onUpdatePost', [elapsed]);
+		}
 
         switch(curStage)
         {
@@ -749,7 +780,21 @@ class Stage extends FlxTypedGroup<FlxBasic>
 			case 'tank':
 				moveTank(elapsed);		
         }
+
     }
+
+	override function destroy() {
+		if(luaArray.length > 0)
+		{
+			for (script in luaArray) {
+				script.call('onDestroy', []);
+				script.stop();
+			}
+			luaArray = [];
+		}
+
+		super.destroy();
+	}
 
     public function beatHit(curBeat:Int)
     {
@@ -791,5 +836,45 @@ class Stage extends FlxTypedGroup<FlxBasic>
 					spr.dance();
 				});
         }
+
+		if(luaArray.length > 0)
+		{
+			setOnLuas('curBeat', curBeat); //DAWGG?????
+			callOnLuas('onBeatHit', []);
+		}
     }
+
+	public function callOnLuas(event:String, args:Array<Dynamic>, ignoreStops=false, ?exclusions:Array<String>):Dynamic {
+		var returnVal:Dynamic = FunkinLua.Function_Continue;
+		#if LUA_ALLOWED
+		if(exclusions == null) exclusions = [];
+		for (i in 0...luaArray.length) {
+			if(exclusions.contains(luaArray[i].scriptName)){
+				continue;
+			}
+
+			var ret:Dynamic = luaArray[i].call(event, args);
+			if(ret == FunkinLua.Function_StopLua) {
+				if(ignoreStops)
+					ret = FunkinLua.Function_Continue;
+				else
+					break;
+			}
+
+			if(ret != FunkinLua.Function_Continue) {
+				returnVal = ret;
+			}
+		}
+		#end
+		//trace(event, returnVal);
+		return returnVal;
+	}
+
+	public function setOnLuas(variable:String, arg:Dynamic) {
+		#if LUA_ALLOWED
+		for (i in 0...luaArray.length) {
+			luaArray[i].set(variable, arg);
+		}
+		#end
+	}
 }

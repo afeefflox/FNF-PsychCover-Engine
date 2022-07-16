@@ -8,10 +8,10 @@ import lime.utils.Assets;
 import openfl.utils.Assets as OpenFlAssets;
 import haxe.Json;
 import haxe.format.JsonParser;
-
+import WeekData;
 using StringTools;
 
-typedef WeekFile =
+typedef WeekFileAlt =
 {
 	// JSON variables
 	var songs:Array<Dynamic>;
@@ -28,8 +28,8 @@ typedef WeekFile =
 	var difficulties:String;
 }
 
-class WeekData {
-	public static var weeksLoaded:Map<String, WeekData> = new Map<String, WeekData>();
+class WeekDataAlt {
+	public static var weeksLoaded:Map<String, WeekDataAlt> = new Map<String, WeekDataAlt>();
 	public static var weeksList:Array<String> = [];
 	public var folder:String = '';
 	
@@ -49,7 +49,7 @@ class WeekData {
 
 	public var fileName:String;
 
-	public static function createWeekFile():WeekFile {
+	public static function createWeekFile():WeekFileAlt {
 		var weekFile:WeekFile = {
 			songs: [["Bopeebo", "dad", [146, 113, 253]], ["Fresh", "dad", [146, 113, 253]], ["Dad Battle", "dad", [146, 113, 253]]],
 			weekCharacters: ['dad', 'bf', 'gf'],
@@ -68,7 +68,7 @@ class WeekData {
 	}
 
 	// HELP: Is there any way to convert a WeekFile to WeekData without having to put all variables there manually? I'm kind of a noob in haxe lmao
-	public function new(weekFile:WeekFile, fileName:String) {
+	public function new(weekFile:WeekFileAlt, fileName:String) {
 		songs = weekFile.songs;
 		weekCharacters = weekFile.weekCharacters;
 		weekBackground = weekFile.weekBackground;
@@ -85,73 +85,25 @@ class WeekData {
 		this.fileName = fileName;
 	}
 
-	public static function reloadWeekFiles(isStoryMode:Null<Bool> = false, ?menuNo:Int = 0)
+	public static function reloadWeekFiles(isStoryMode:Null<Bool> = false, ?menuNo:Int = 1)
 	{
 		weeksList = [];
 		weeksLoaded.clear();
-		var suf:String = '';
+		var suf:String = "";
+		switch(menuNo)
+		{
+			case 1: suf = '-betadciu'; //BETADCIU menu.
+			case 2: suf = '-bonus'; //Bonus Songs Menu
+			case 3: suf = '-neonight'; //Neonight Menu
+			case 4: suf = '-vitor'; //Vitor Menu
+			case 5: suf = '-guest'; //Other BETADCIU creators menu.
+		}
 		#if MODS_ALLOWED
 		var disabledMods:Array<String> = [];
 		var modsListPath:String = 'modsList.txt';
 		var directories:Array<String> = [Paths.mods(), Paths.getPreloadPath()];
 		var originalLength:Int = directories.length;
-        switch(menuNo)
-        {
-			case 0: disabledMods.push('BETADCIU');//freeplay. continue checking but skip all BETADCIU stuff.
-			case 1 | 2 | 3 | 4 | 5:
-			{
-				
 
-				switch (menuNo)
-				{
-					case 1: suf = '-betadciu'; //BETADCIU menu.
-					case 2: suf = '-bonus'; //Bonus Songs Menu
-					case 3: suf = '-neonight'; //Neonight Menu
-					case 4: suf = '-vitor'; //Vitor Menu
-					case 5: suf = '-guest'; //Other BETADCIU creators menu.
-				}
-				#if desktop
-				var directory:String = Paths.modFolders('BETADCIU') + '/weeks/';
-				var i:Int = 0;
-				var curI:Int = 0;
-
-				if(FileSystem.exists(directory)) {
-					var listOfWeeks:Array<String> = [];
-	
-					if (FileSystem.exists(directory + 'weekList.txt'))
-						listOfWeeks = CoolUtil.coolTextFile(directory + 'weekList.txt');
-	
-					for (daWeek in listOfWeeks)
-					{
-						var path:String = directory + daWeek + '.json';
-
-						if(sys.FileSystem.exists(path) && path.endsWith(suf+'.json'))
-						{
-							addWeek(daWeek, path, Paths.modFolders('BETADCIU') + '/', i, 0);
-						}
-					}
-
-					for (file in FileSystem.readDirectory(directory))
-					{
-						var path = haxe.io.Path.join([directory, file]);
-						if (!sys.FileSystem.isDirectory(path) && file.endsWith(suf+'.json'))
-						{
-							addWeek(file.substr(0, file.length - 5), path, Paths.modFolders('BETADCIU') + '/', i, 0);
-						}
-
-						curI++;
-
-						if (curI % 3 == 0)
-							i++;
-					}
-				}
-				#end
-			}            
-        }
-
-        if (menuNo != 0)
-			return;
-        
 		if(FileSystem.exists(modsListPath))
 		{
 			var stuff:Array<String> = CoolUtil.coolTextFile(modsListPath);
@@ -193,11 +145,11 @@ class WeekData {
 		var sexList:Array<String> = CoolUtil.coolTextFile(Paths.getPreloadPath('weeks/weekList.txt'));
 		for (i in 0...sexList.length) {
 			for (j in 0...directories.length) {
-				var fileToCheck:String = directories[j] + 'weeks/' + sexList[i] + '.json';
-				if(!weeksLoaded.exists(sexList[i]) && !fileToCheck.endsWith('-betadciu.json') && !fileToCheck.endsWith('-bonus.json') ) {
+				var fileToCheck:String = directories[j] + 'weeks/' + sexList[i] + suf +'.json';
+				if(!weeksLoaded.exists(sexList[i])) {
 					var week:WeekFile = getWeekFile(fileToCheck);
 					if(week != null) {
-						var weekFile:WeekData = new WeekData(week, sexList[i]);
+						var weekFile:WeekDataAlt = new WeekDataAlt(week, sexList[i]);
 
 						#if MODS_ALLOWED
 						if(j >= originalLength) {
@@ -222,7 +174,7 @@ class WeekData {
 				for (daWeek in listOfWeeks)
 				{
 					var path:String = directory + daWeek + '.json';
-					if(sys.FileSystem.exists(path) && !path.endsWith('-betadciu.json') && !path.endsWith('-bonus.json'))
+					if(sys.FileSystem.exists(path) && path.endsWith(suf+'.json'))
 					{
 						addWeek(daWeek, path, directories[i], i, originalLength);
 					}
@@ -231,7 +183,7 @@ class WeekData {
 				for (file in FileSystem.readDirectory(directory))
 				{
 					var path = haxe.io.Path.join([directory, file]);
-					if (!sys.FileSystem.isDirectory(path) && file.endsWith('.json') && !file.endsWith('-betadciu.json') && !file.endsWith('-bonus.json'))
+					if (!sys.FileSystem.isDirectory(path) && file.endsWith(suf+'.json'))
 					{
 						addWeek(file.substr(0, file.length - 5), path, directories[i], i, originalLength);
 					}
@@ -245,10 +197,10 @@ class WeekData {
 	{
 		if(!weeksLoaded.exists(weekToCheck))
 		{
-			var week:WeekFile = getWeekFile(path);
+			var week:WeekFileAlt = getWeekFile(path);
 			if(week != null)
 			{
-				var weekFile:WeekData = new WeekData(week, weekToCheck);
+				var weekFile:WeekDataAlt = new WeekDataAlt(week, weekToCheck);
 				if(i >= originalLength)
 				{
 					#if MODS_ALLOWED
@@ -264,7 +216,7 @@ class WeekData {
 		}
 	}
 
-	private static function getWeekFile(path:String):WeekFile {
+	private static function getWeekFile(path:String):WeekFileAlt {
 		var rawJson:String = null;
 		#if MODS_ALLOWED
 		if(FileSystem.exists(path)) {
@@ -290,11 +242,11 @@ class WeekData {
 	}
 
 	//Used on LoadingState, nothing really too relevant
-	public static function getCurrentWeek():WeekData {
+	public static function getCurrentWeek():WeekDataAlt {
 		return weeksLoaded.get(weeksList[PlayState.storyWeek]);
 	}
 
-	public static function setDirectoryFromWeek(?data:WeekData = null) {
+	public static function setDirectoryFromWeek(?data:WeekDataAlt = null) {
 		Paths.currentModDirectory = '';
 		if(data != null && data.folder != null && data.folder.length > 0) {
 			Paths.currentModDirectory = data.folder;

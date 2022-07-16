@@ -29,10 +29,19 @@ class Boyfriend extends Character
 
 			if (animation.curAnim.name.endsWith('miss') && animation.curAnim.finished && !debugMode)
 			{
-				playAnim('idle', true, false, 10);
+				if(danceIdle)
+					playAnim('danceLeft' + idleSuffix, true, false, 10);
+				else
+					playAnim('idle' + idleSuffix, true, false, 10);
 			}
 
 			if (animation.curAnim.name == 'firstDeath' && animation.curAnim.finished && startedDeath)
+			{
+				playAnim('death', true); //Change this to normal (so we can use as -loop)
+			}
+
+			//People had older version for compatibility stuff :/
+			if (animation.curAnim.name == 'firstDeath' && animation.getByName('deathLoop') != null && animation.curAnim.finished && startedDeath)
 			{
 				playAnim('deathLoop');
 			}

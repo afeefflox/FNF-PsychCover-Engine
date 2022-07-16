@@ -1,5 +1,6 @@
 package;
 
+import flixel.FlxObject;
 import animateatlas.AtlasFrameMaker;
 import flixel.FlxG;
 import flixel.FlxSprite;
@@ -18,6 +19,7 @@ import openfl.utils.Assets;
 import haxe.Json;
 import haxe.format.JsonParser;
 
+
 using StringTools;
 
 typedef CharacterFile = {
@@ -31,12 +33,14 @@ typedef CharacterFile = {
 	var splashSkin:String;
 
 	var position:Array<Float>;
+	var player_position:Array<Float>;
 	var camera_position:Array<Float>;
 	var playerCamera_position:Array<Float>;
 
 	var flip_x:Bool;
 	var no_antialiasing:Bool;
 	var healthbar_colors:Array<Int>;
+	var isPlayerChar:Bool;
 }
 
 typedef AnimArray = {
@@ -55,10 +59,12 @@ class Character extends FlxSprite
 	public var debugMode:Bool = false;
 
 	public var isPlayer:Bool = false;
+	public var wasPlayer:Bool = false;
 	public var curCharacter:String = DEFAULT_CHARACTER;
 
 	public var colorTween:FlxTween;
 	public var holdTimer:Float = 0;
+	public var holding:Bool = false;
 	public var heyTimer:Float = 0;
 	public var specialAnim:Bool = false;
 	public var animationNotes:Array<Dynamic> = [];
@@ -66,6 +72,9 @@ class Character extends FlxSprite
 	public var singDuration:Float = 4; //Multiplier of how long a character holds the sing pose
 	public var idleSuffix:String = '';
 	public var danceIdle:Bool = false; //Character use "danceLeft" and "danceRight" instead of "idle"
+	public var stopIdle:Bool = false; //Character use Disabled Idle :/ from Blantados
+	public var trail:Bool = false;
+	public var flipAnim:Bool = false;
 	public var skipDance:Bool = false;
 	
 
@@ -77,6 +86,7 @@ class Character extends FlxSprite
 
 	public var positionArray:Array<Float> = [0, 0];
 	public var cameraPosition:Array<Float> = [0, 0];
+	public var playerPositionArray:Array<Float> = [0, 0];
 	public var playerCameraPosition:Array<Float> = [0, 0];
 
 	public var hasMissAnimations:Bool = false;
@@ -184,32 +194,39 @@ class Character extends FlxSprite
 					updateHitbox();
 				}
 
-				positionArray = json.position;
-				if(json.arrowSkin != null && json.arrowSkin.length > 1)
+				
+				if(json.arrowSkin != null)
 					arrowSkin = json.arrowSkin;
 
-				if(json.arrowStyle != null && json.arrowStyle.length > 1)
+				if(json.arrowStyle != null)
 					arrowStyle = json.arrowStyle;
 
-				if(json.splashSkin != null && json.splashSkin.length > 1)
+				if(json.splashSkin != null)
 					splashSkin = json.splashSkin;
-				
-				if(isPlayer)
-				{
-					if(json.playerCamera_position != null && json.playerCamera_position.length > 1)
-						playerCameraPosition = json.playerCamera_position;
-					else
-						playerCameraPosition = json.camera_position;
-				}
+
+
+				if(json.isPlayerChar)
+					wasPlayer = json.isPlayerChar;
+
+
+				if (json.player_position != null)
+					playerPositionArray = json.player_position;
 				else
-				{
-					cameraPosition = json.camera_position;
-				}
+					playerPositionArray = json.position;
+
+				if (json.playerCamera_position != null)
+					playerCameraPosition = json.playerCamera_position;
+				else
+					playerCameraPosition = json.camera_position;
+
+				positionArray = json.position;
+				cameraPosition = json.camera_position; 
 				
 
 				healthIcon = json.healthicon;
 				singDuration = json.sing_duration;
 				flipX = !!json.flip_x;
+
 				if(json.no_antialiasing) {
 					antialiasing = false;
 					noAntialiasing = true;
@@ -240,9 +257,6 @@ class Character extends FlxSprite
 							if(anim.offsets_player != null && anim.offsets_player.length > 1) {
 								addOffset(anim.anim, anim.offsets_player[0], anim.offsets_player[1]);
 							}
-							else if(anim.offsets != null && anim.offsets.length > 1) {
-								addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
-							}
 						}
 						else
 						{
@@ -250,7 +264,6 @@ class Character extends FlxSprite
 								addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
 							}
 						}
-
 					}
 				} else {
 					quickAnimAdd('idle', 'BF idle dance');
@@ -258,9 +271,6 @@ class Character extends FlxSprite
 				//trace('Loaded file to character ' + curCharacter);
 		}
 		originalFlipX = flipX;
-
-		if(animOffsets.exists('singLEFTmiss'))
-
 		if(animOffsets.exists('singLEFTmiss') || animOffsets.exists('singDOWNmiss') || animOffsets.exists('singUPmiss') || animOffsets.exists('singRIGHTmiss')) hasMissAnimations = true;
 		recalculateDanceIdle();
 		dance();
@@ -268,79 +278,13 @@ class Character extends FlxSprite
 		if (isPlayer)
 		{
 			flipX = !flipX;
-
-			/*// Doesn't flip for BF, since his are already in the right place???*/
-			if (!curCharacter.contains('bf'))
-			{
-				var oldRight = animation.getByName('singRIGHT').frames;
-				animation.getByName('singRIGHT').frames = animation.getByName('singLEFT').frames;
-				animation.getByName('singLEFT').frames = oldRight;
-
-				if (animation.getByName('singRIGHTmiss') != null && animation.getByName('singLEFTmiss') != null)
-				{
-					var oldRight = animation.getByName('singRIGHTmiss').frames;
-					animation.getByName('singRIGHTmiss').frames = animation.getByName('singLEFTmiss').frames;
-					animation.getByName('singLEFTmiss').frames = oldRight;
-				}
-
-				if (animation.getByName('singRIGHT-alt') != null && animation.getByName('singLEFT-alt') != null)
-				{
-					var oldRight = animation.getByName('singRIGHT-alt').frames;
-					animation.getByName('singRIGHT-alt').frames = animation.getByName('singLEFT-alt').frames;
-					animation.getByName('singLEFT-alt').frames = oldRight;
-				}
-
-				if (animation.getByName('singRIGHT-loop') != null && animation.getByName('singLEFT-loop') != null)
-				{
-					var oldRight = animation.getByName('singRIGHT-loop').frames;
-					animation.getByName('singRIGHT-loop').frames = animation.getByName('singLEFT-loop').frames;
-					animation.getByName('singLEFT-loop').frames = oldRight;
-				}
-
-				if (animation.getByName('singRIGHT-alt-loop') != null && animation.getByName('singLEFT-alt-loop') != null)
-				{
-					var oldRight = animation.getByName('singRIGHT-alt-loop').frames;
-					animation.getByName('singRIGHT-alt-loop').frames = animation.getByName('singLEFT-alt-loop').frames;
-					animation.getByName('singLEFT-alt-loop').frames = oldRight;
-				}
-			}
+			if (!curCharacter.contains('bf') && !wasPlayer)
+				swapAnimations();
 		}
-		else
+		else 
 		{
-			if (curCharacter.contains('bf'))
-			{
-				var oldRight = animation.getByName('singRIGHT').frames;
-				animation.getByName('singRIGHT').frames = animation.getByName('singLEFT').frames;
-				animation.getByName('singLEFT').frames = oldRight;
-
-				if (animation.getByName('singRIGHTmiss') != null && animation.getByName('singLEFTmiss') != null)
-				{
-					var oldRight = animation.getByName('singRIGHTmiss').frames;
-					animation.getByName('singRIGHTmiss').frames = animation.getByName('singLEFTmiss').frames;
-					animation.getByName('singLEFTmiss').frames = oldRight;
-				}
-
-				if (animation.getByName('singRIGHT-alt') != null && animation.getByName('singLEFT-alt') != null)
-				{
-					var oldRight = animation.getByName('singRIGHT-alt').frames;
-					animation.getByName('singRIGHT-alt').frames = animation.getByName('singLEFT-alt').frames;
-					animation.getByName('singLEFT-alt').frames = oldRight;
-				}
-
-				if (animation.getByName('singRIGHT-loop') != null && animation.getByName('singLEFT-loop') != null)
-				{
-					var oldRight = animation.getByName('singRIGHT-loop').frames;
-					animation.getByName('singRIGHT-loop').frames = animation.getByName('singLEFT-loop').frames;
-					animation.getByName('singLEFT-loop').frames = oldRight;
-				}
-
-				if (animation.getByName('singRIGHT-alt-loop') != null && animation.getByName('singLEFT-alt-loop') != null)
-				{
-					var oldRight = animation.getByName('singRIGHT-alt-loop').frames;
-					animation.getByName('singRIGHT-alt-loop').frames = animation.getByName('singLEFT-alt-loop').frames;
-					animation.getByName('singLEFT-alt-loop').frames = oldRight;
-				}
-			}
+			if (curCharacter.contains('bf') || wasPlayer)
+				swapAnimations();
 		}
 
 		if(curCharacter == 'pico-speaker')
@@ -349,6 +293,51 @@ class Character extends FlxSprite
 			loadMappedAnims();
 			playAnim("shoot1");
 		}
+	}
+
+	public function swapAnimations()
+	{
+		if (animation.getByName('singRIGHT') != null)
+		{
+			var oldRight = animation.getByName('singRIGHT').frames;
+			animation.getByName('singRIGHT').frames = animation.getByName('singLEFT').frames;
+			animation.getByName('singLEFT').frames = oldRight;
+		}
+
+		if (animation.getByName('singRIGHT-loop') != null)
+		{
+			var oldRight = animation.getByName('singRIGHT-loop').frames;
+			animation.getByName('singRIGHT-loop').frames = animation.getByName('singLEFT-loop').frames;
+			animation.getByName('singLEFT-loop').frames = oldRight;
+		}
+
+		if (animation.getByName('singRIGHTmiss') != null)
+		{
+			var oldMiss = animation.getByName('singRIGHTmiss').frames;
+			animation.getByName('singRIGHTmiss').frames = animation.getByName('singLEFTmiss').frames;
+			animation.getByName('singLEFTmiss').frames = oldMiss;
+		}
+
+		if (animation.getByName('singRIGHTmiss-loop') != null)
+		{
+			var oldMiss = animation.getByName('singRIGHTmiss-loop').frames;
+			animation.getByName('singRIGHTmiss-loop').frames = animation.getByName('singLEFTmiss-loop').frames;
+			animation.getByName('singLEFTmiss-loop').frames = oldMiss;			
+		}
+
+		if (animation.getByName('singRIGHT-alt') != null)
+		{
+			var oldRight = animation.getByName('singRIGHT-alt').frames;
+			animation.getByName('singRIGHT-alt').frames = animation.getByName('singLEFT-alt').frames;
+			animation.getByName('singLEFT-alt').frames = oldRight;
+		}
+
+		if (animation.getByName('singRIGHT-alt-loop') != null)
+		{
+			var oldRight = animation.getByName('singRIGHT-alt-loop').frames;
+			animation.getByName('singRIGHT-alt-loop').frames = animation.getByName('singLEFT-alt-loop').frames;
+			animation.getByName('singLEFT-alt-loop').frames = oldRight;
+		}		
 	}
 
 	override function update(elapsed:Float)
@@ -394,7 +383,7 @@ class Character extends FlxSprite
 					holdTimer += elapsed;
 				}
 
-				if (holdTimer >= Conductor.stepCrochet * 0.001 * singDuration)
+				if (holdTimer >= Conductor.stepCrochet * 0.0011 * singDuration)
 				{
 					dance();
 					holdTimer = 0;
@@ -404,6 +393,16 @@ class Character extends FlxSprite
 			if(animation.curAnim.finished && animation.getByName(animation.curAnim.name + '-loop') != null)
 			{
 				playAnim(animation.curAnim.name + '-loop');
+			}
+			if(holding){
+				if(animation.curAnim.curFrame > 3 && animation.getByName(animation.curAnim.name + '-loop') != null)
+				{
+					playAnim(animation.curAnim.name + '-loop');
+				}
+				else
+				{
+					animation.curAnim.curFrame = 0;
+				}
 			}
 		}
 		super.update(elapsed);
@@ -416,7 +415,7 @@ class Character extends FlxSprite
 	 */
 	public function dance()
 	{
-		if (!debugMode && !skipDance && !specialAnim)
+		if (!debugMode && !skipDance && !specialAnim || stopIdle)
 		{
 			if(danceIdle)
 			{

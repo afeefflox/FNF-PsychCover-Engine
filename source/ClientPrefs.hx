@@ -11,6 +11,7 @@ class ClientPrefs {
 	public static var middleScroll:Bool = false;
 	public static var opponentStrums:Bool = true;
 	public static var showFPS:Bool = true;
+	public static var betadciu:Bool = false;
 	public static var flashing:Bool = true;
 	public static var globalAntialiasing:Bool = true;
 	public static var noteSplashes:Bool = true;
@@ -31,6 +32,9 @@ class ClientPrefs {
 	public static var controllerMode:Bool = false;
 	public static var hitsoundVolume:Float = 0;
 	public static var pauseMusic:String = 'Tea Time';
+	public static var showcaseMode:Bool = false;
+	public static var countdown:Bool = true;
+	public static var checkForUpdates:Bool = true;
 	public static var gameplaySettings:Map<String, Dynamic> = [
 		'scrollspeed' => 1.0,
 		'scrolltype' => 'multiplicative', 
@@ -101,6 +105,8 @@ class ClientPrefs {
 		FlxG.save.data.noteSplashes = noteSplashes;
 		FlxG.save.data.lowQuality = lowQuality;
 		FlxG.save.data.framerate = framerate;
+		FlxG.save.data.betadciu = betadciu;
+		FlxG.save.data.checkForUpdates = checkForUpdates;
 		//FlxG.save.data.cursing = cursing;
 		//FlxG.save.data.violence = violence;
 		FlxG.save.data.camZooms = camZooms;
@@ -126,6 +132,8 @@ class ClientPrefs {
 		FlxG.save.data.controllerMode = controllerMode;
 		FlxG.save.data.hitsoundVolume = hitsoundVolume;
 		FlxG.save.data.pauseMusic = pauseMusic;
+		FlxG.save.data.showcaseMode = showcaseMode;
+		FlxG.save.data.countdown = countdown;
 	
 		FlxG.save.flush();
 
@@ -174,12 +182,6 @@ class ClientPrefs {
 				FlxG.updateFramerate = framerate;
 			}
 		}
-		/*if(FlxG.save.data.cursing != null) {
-			cursing = FlxG.save.data.cursing;
-		}
-		if(FlxG.save.data.violence != null) {
-			violence = FlxG.save.data.violence;
-		}*/
 		if(FlxG.save.data.camZooms != null) {
 			camZooms = FlxG.save.data.camZooms;
 		}
@@ -235,6 +237,18 @@ class ClientPrefs {
 		if(FlxG.save.data.pauseMusic != null) {
 			pauseMusic = FlxG.save.data.pauseMusic;
 		}
+		if(FlxG.save.data.betadciu != null) {
+			betadciu = FlxG.save.data.betadciu;
+		}
+		if (FlxG.save.data.checkForUpdates != null) {
+			checkForUpdates = FlxG.save.data.checkForUpdates;
+		}
+		if(FlxG.save.data.showcaseMode != null) {
+			showcaseMode = FlxG.save.data.showcaseMode;
+		}
+		if(FlxG.save.data.countdown != null) {
+			countdown = FlxG.save.data.countdown;
+		}
 		if(FlxG.save.data.gameplaySettings != null)
 		{
 			var savedMap:Map<String, Dynamic> = FlxG.save.data.gameplaySettings;
@@ -243,7 +257,7 @@ class ClientPrefs {
 				gameplaySettings.set(name, value);
 			}
 		}
-		
+	
 		// flixel automatically saves your volume!
 		if(FlxG.save.data.volume != null)
 		{

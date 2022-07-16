@@ -69,6 +69,14 @@ class GameplaySettingsSubState extends BaseOptionsMenu
 			'bool',
 			true);
 		addOption(option);
+		
+
+		var option:Option = new Option('Opponent Notes',
+			'If unchecked, opponent notes get hidden.',
+			'opponentStrums',
+			'bool',
+			true);
+		addOption(option);
 
 		var option:Option = new Option('Disable Reset Button',
 			"If checked, pressing Reset won't do anything.",

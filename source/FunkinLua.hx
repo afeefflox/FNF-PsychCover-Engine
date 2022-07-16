@@ -1683,6 +1683,12 @@ class FunkinLua {
 						else
 							luaObj.offset.set(0, 0);
 					}
+					else if(Std.isOfType(luaObj, ModchartCharacter)) //if they are character
+					{
+						var obj:Dynamic = luaObj;
+						var spr:ModchartCharacter = obj;
+						spr.playAnim(name, forced, reverse, startFrame);
+					}
 				}
 				return true;
 			}
@@ -1755,7 +1761,6 @@ class FunkinLua {
 						}
 					}
 					shit.wasAdded = true;
-					PlayState.instance.objectLua.push(shit);
 					//trace('added a thing: ' + tag);
 				}
 			}
