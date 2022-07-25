@@ -69,7 +69,8 @@ class Character extends FlxSprite
 	public var specialAnim:Bool = false;
 	public var animationNotes:Array<Dynamic> = [];
 	public var stunned:Bool = false;
-	public var singDuration:Float = 4; //Multiplier of how long a character holds the sing pose
+	public var singDuration:Float = 4; //Multiplier of how long a character holds the sing pose'
+	public var lastNoteHitTime:Float = -60000;
 	public var idleSuffix:String = '';
 	public var danceIdle:Bool = false; //Character use "danceLeft" and "danceRight" instead of "idle"
 	public var stopIdle:Bool = false; //Character use Disabled Idle :/ from Blantados
@@ -257,6 +258,9 @@ class Character extends FlxSprite
 							if(anim.offsets_player != null && anim.offsets_player.length > 1) {
 								addOffset(anim.anim, anim.offsets_player[0], anim.offsets_player[1]);
 							}
+							else if(anim.offsets != null && anim.offsets.length > 1 && anim.offsets_player == null) {
+								addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+							}
 						}
 						else
 						{
@@ -385,6 +389,8 @@ class Character extends FlxSprite
 
 				if (holdTimer >= Conductor.stepCrochet * 0.0011 * singDuration)
 				{
+					if (danceIdle)
+						playAnim('danceLeft'); // overridden by dance correctly later
 					dance();
 					holdTimer = 0;
 				}
@@ -393,16 +399,6 @@ class Character extends FlxSprite
 			if(animation.curAnim.finished && animation.getByName(animation.curAnim.name + '-loop') != null)
 			{
 				playAnim(animation.curAnim.name + '-loop');
-			}
-			if(holding){
-				if(animation.curAnim.curFrame > 3 && animation.getByName(animation.curAnim.name + '-loop') != null)
-				{
-					playAnim(animation.curAnim.name + '-loop');
-				}
-				else
-				{
-					animation.curAnim.curFrame = 0;
-				}
 			}
 		}
 		super.update(elapsed);
@@ -415,6 +411,8 @@ class Character extends FlxSprite
 	 */
 	public function dance()
 	{
+		if (lastNoteHitTime + 250 > Conductor.songPosition) return; // 250 ms until dad dances
+		if (animation.curAnim != null && !animation.curAnim.name.startsWith("sing") && !animation.curAnim.finished) return;
 		if (!debugMode && !skipDance && !specialAnim || stopIdle)
 		{
 			if(danceIdle)
@@ -434,6 +432,9 @@ class Character extends FlxSprite
 
 	public function playAnim(AnimName:String, Force:Bool = false, Reversed:Bool = false, Frame:Int = 0):Void
 	{
+		if (AnimName.startsWith("sing")) {
+			lastNoteHitTime = Conductor.songPosition;
+		}
 		specialAnim = false;
 		animation.play(AnimName, Force, Reversed, Frame);
 

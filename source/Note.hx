@@ -224,8 +224,8 @@ class Note extends FlxSprite
 			multAlpha = 0.6;
 			hitsoundDisabled = true;
 			if(ClientPrefs.downScroll) flipY = true;
-
-			offsetX += width / 2;
+			if(style != 'pixel') 
+				offsetX += width / 2;
 			copyAngle = false;
 
 			switch (noteData % 4)
@@ -241,8 +241,8 @@ class Note extends FlxSprite
 			}
 
 			updateHitbox();
-
-			offsetX -= width / 2;
+			if(style != 'pixel') 
+				offsetX -= width / 2;
 
 			if(style == 'pixel')
 				offsetX += 30;
@@ -315,32 +315,26 @@ class Note extends FlxSprite
 		{
 			case 'pixel':
 				if(isSustainNote) {
-					/*loadGraphic(Paths.image('pixelUI/' + blahblah + 'ENDS'));
+					loadGraphic(Paths.image('pixelUI/' + blahblah + 'ENDS'));
 					width = width / 4;
 					height = height / 2;
-					originalHeightForCalcs = height;*/
-					loadGraphic(Paths.image('pixelUI/' + blahblah + 'ENDS'), true, 7, 6);
+					originalHeightForCalcs = height;
+					loadGraphic(Paths.image('pixelUI/' + blahblah + 'ENDS'), true, Math.floor(width), Math.floor(height));
 				} else {
-					/*loadGraphic(Paths.image('pixelUI/' + blahblah));
+					loadGraphic(Paths.image('pixelUI/' + blahblah));
 					width = width / 4;
-					height = height / 5;*/
-					loadGraphic(Paths.image('pixelUI/' + blahblah), true, 17, 17);
+					height = height / 5;
+					loadGraphic(Paths.image('pixelUI/' + blahblah), true, Math.floor(width), Math.floor(height));
 				}
-				setGraphicSize(Std.int(width * PlayState.daPixelZoom));
+				
 				loadPixelNoteAnims();
+				setGraphicSize(Std.int(width * PlayState.daPixelZoom));
 				antialiasing = false;
 	
 				if(isSustainNote) {
 					offsetX += lastNoteOffsetXForPixelAutoAdjusting;
 					lastNoteOffsetXForPixelAutoAdjusting = (width - 7) * (PlayState.daPixelZoom / 2);
 					offsetX -= lastNoteOffsetXForPixelAutoAdjusting;
-	
-					/*if(animName != null && !animName.endsWith('end'))
-					{
-						lastScaleY /= lastNoteScaleToo;
-						lastNoteScaleToo = (6 / height);
-						lastScaleY *= lastNoteScaleToo;
-					}*/
 				}
 			default:
 				frames = Paths.getSparrowAtlas(blahblah);
@@ -380,7 +374,6 @@ class Note extends FlxSprite
 			animation.addByPrefix('redhold', 'red hold piece');
 			animation.addByPrefix('bluehold', 'blue hold piece');
 		}
-
 		setGraphicSize(Std.int(width * 0.7));
 		updateHitbox();
 	}

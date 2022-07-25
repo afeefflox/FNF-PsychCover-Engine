@@ -46,6 +46,7 @@ import flixel.util.FlxSort;
 import flixel.util.FlxStringUtil;
 import flixel.util.FlxTimer;
 import flixel.addons.display.FlxBackdrop;
+import lime.app.Application;
 #if sys
 import sys.io.File;
 import sys.FileSystem;
@@ -74,6 +75,15 @@ class FunkinHaxe
     exparser.allowTypes = true;
     var parsedstring = exparser.parseString(File.getContent(script));
     interp = new Interp();
+    interp.errorHandler = function(e) {
+      var posInfo = interp.posInfos();
+
+      var lineNumber = Std.string(posInfo.lineNumber);
+      var methodName = posInfo.methodName;
+      var className = posInfo.className;
+
+      Application.current.window.alert('Exception occured at line $lineNumber ${methodName == null ? "" : 'in $methodName'}\n\n${e}\n\nIf the message boxes blocks the engine, hold down SHIFT to bypass.', 'HScript error! - ${scriptName}');
+  };
 
     set('PlayState', PlayState);
     set('Character', Character);

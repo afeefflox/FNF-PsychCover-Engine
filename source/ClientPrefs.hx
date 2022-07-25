@@ -23,9 +23,10 @@ class ClientPrefs {
 	public static var hideHud:Bool = false;
 	public static var noteOffset:Int = 0;
 	public static var arrowHSV:Array<Array<Int>> = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
-	public static var imagesPersist:Bool = false;
 	public static var ghostTapping:Bool = true;
 	public static var timeBarType:String = 'Time Left';
+	public static var animationType:String = 'Normal';
+	public static var shaders:Bool = true;
 	public static var scoreZoom:Bool = true;
 	public static var noReset:Bool = false;
 	public static var healthBarAlpha:Float = 1;
@@ -35,6 +36,9 @@ class ClientPrefs {
 	public static var showcaseMode:Bool = false;
 	public static var countdown:Bool = true;
 	public static var checkForUpdates:Bool = true;
+	public static var inputType:String = 'Psych';
+	public static var showMs:Bool = false;
+	public static var hiddenGF:Bool = false;
 	public static var gameplaySettings:Map<String, Dynamic> = [
 		'scrollspeed' => 1.0,
 		'scrolltype' => 'multiplicative', 
@@ -107,13 +111,14 @@ class ClientPrefs {
 		FlxG.save.data.framerate = framerate;
 		FlxG.save.data.betadciu = betadciu;
 		FlxG.save.data.checkForUpdates = checkForUpdates;
+		FlxG.save.data.shaders = shaders;
+		FlxG.save.data.showMs = showMs;
 		//FlxG.save.data.cursing = cursing;
 		//FlxG.save.data.violence = violence;
 		FlxG.save.data.camZooms = camZooms;
 		FlxG.save.data.noteOffset = noteOffset;
 		FlxG.save.data.hideHud = hideHud;
 		FlxG.save.data.arrowHSV = arrowHSV;
-		FlxG.save.data.imagesPersist = imagesPersist;
 		FlxG.save.data.ghostTapping = ghostTapping;
 		FlxG.save.data.timeBarType = timeBarType;
 		FlxG.save.data.scoreZoom = scoreZoom;
@@ -134,7 +139,9 @@ class ClientPrefs {
 		FlxG.save.data.pauseMusic = pauseMusic;
 		FlxG.save.data.showcaseMode = showcaseMode;
 		FlxG.save.data.countdown = countdown;
-	
+		FlxG.save.data.animationType = animationType;
+		FlxG.save.data.inputType = inputType;
+		FlxG.save.data.hiddenGF = hiddenGF;
 		FlxG.save.flush();
 
 		var save:FlxSave = new FlxSave();
@@ -153,6 +160,9 @@ class ClientPrefs {
 		}
 		if(FlxG.save.data.opponentStrums != null) {
 			opponentStrums = FlxG.save.data.opponentStrums;
+		}
+		if(FlxG.save.data.showMs != null) {
+			showMs = FlxG.save.data.showMs;
 		}
 		if(FlxG.save.data.showFPS != null) {
 			showFPS = FlxG.save.data.showFPS;
@@ -248,6 +258,18 @@ class ClientPrefs {
 		}
 		if(FlxG.save.data.countdown != null) {
 			countdown = FlxG.save.data.countdown;
+		}
+		if(FlxG.save.data.animationType != null) {
+			animationType = FlxG.save.data.animationType;
+		}
+		if(FlxG.save.data.inputType != null) {
+			inputType = FlxG.save.data.inputType;
+		}
+		if(FlxG.save.data.hiddenGF != null) {
+			hiddenGF = FlxG.save.data.hiddenGF;
+		}
+		if(FlxG.save.data.shaders != null) {
+			shaders = FlxG.save.data.shaders;
 		}
 		if(FlxG.save.data.gameplaySettings != null)
 		{

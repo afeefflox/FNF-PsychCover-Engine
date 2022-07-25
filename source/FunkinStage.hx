@@ -39,13 +39,15 @@ import Type.ValueType;
 import Controls;
 import DialogueBoxPsych;
 import FunkinLua;
-import Stage;
 #if hscript //this is sucks trust me :(
 import hscript.Parser;
 import hscript.Interp;
 #end
 #if desktop
 import Discord;
+#end
+#if !flash
+import flixel.addons.display.FlxRuntimeShader;
 #end
 
 using StringTools;
@@ -63,7 +65,7 @@ class FunkinStage {
 	public var camTarget:FlxCamera;
 	public var scriptName:String = '';
 	public var closed:Bool = false;
-
+	
 	public function new(script:String) {
 		#if LUA_ALLOWED
 		lua = LuaL.newstate();
@@ -108,6 +110,7 @@ class FunkinStage {
 		set('stepCrochet', Conductor.stepCrochet);
 		set('songLength', FlxG.sound.music.length);
 		set('songName', PlayState.SONG.song);
+		set('songPath', Paths.formatToSongPath(PlayState.SONG.song));
 		set('startedCountdown', false);
 
 		set('isStoryMode', PlayState.isStoryMode);
@@ -202,10 +205,173 @@ class FunkinStage {
 		set('buildTarget', 'unknown');
 		#end
 
+		// shader shit
+		Lua_helper.add_callback(lua, "initLuaShader", function(name:String, glslVersion:Int = 120) {
+			if(!ClientPrefs.shaders) return false;
+			return initLuaShader(name, glslVersion);
+		});
+
+		Lua_helper.add_callback(lua, "setSpriteShader", function(obj:String, shader:String) {
+			if(!ClientPrefs.shaders) return false;
+			#if (!flash && MODS_ALLOWED && sys)
+			if(!PlayState.instance.runtimeShaders.exists(shader) && !initLuaShader(shader))
+			{
+				luaTrace('Shader $shader is missing! Initialize it with initLuaShader', false, false, FlxColor.RED);
+				return false;
+			}
+
+			var killMe:Array<String> = obj.split('.');
+			var leObj:FlxSprite = getObjectDirectly(killMe[0]);
+			if(killMe.length > 1) {
+				leObj = getVarInArray(getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1]);
+			}
+
+			if(leObj != null) {
+				var arr:Array<String> = PlayState.instance.runtimeShaders.get(shader);
+				leObj.shader = new FlxRuntimeShader(arr[0], arr[1]);
+				return true;
+			}
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			#end
+			return false;
+		});
+		Lua_helper.add_callback(lua, "removeSpriteShader", function(obj:String) {
+			var killMe:Array<String> = obj.split('.');
+			var leObj:FlxSprite = getObjectDirectly(killMe[0]);
+			if(killMe.length > 1) {
+				leObj = getVarInArray(getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1]);
+			}
+
+			if(leObj != null) {
+				leObj.shader = null;
+				return true;
+			}
+			return false;
+		});
+
+
+		Lua_helper.add_callback(lua, "getShaderBool", function(obj:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			return (shader == null) ? null : shader.getBool(prop);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			return null;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getShaderBoolArray", function(obj:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			return (shader == null) ? null : shader.getBoolArray(prop);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			return null;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getShaderInt", function(obj:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			return (shader == null) ? null : shader.getInt(prop);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			return null;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getShaderIntArray", function(obj:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			return (shader == null) ? null : shader.getIntArray(prop);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			return null;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getShaderFloat", function(obj:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			return (shader == null) ? null : shader.getFloat(prop);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			return null;
+			#end
+		});
+		Lua_helper.add_callback(lua, "getShaderFloatArray", function(obj:String, prop:String) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			return (shader == null) ? null : shader.getFloatArray(prop);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			return null;
+			#end
+		});
+
+
+		Lua_helper.add_callback(lua, "setShaderBool", function(obj:String, prop:String, value:Bool) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			if(shader == null) return;
+
+			shader.setBool(prop, value);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			#end
+		});
+		Lua_helper.add_callback(lua, "setShaderBoolArray", function(obj:String, prop:String, values:Dynamic) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			if(shader == null) return;
+
+			shader.setBoolArray(prop, values);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			#end
+		});
+		Lua_helper.add_callback(lua, "setShaderInt", function(obj:String, prop:String, value:Int) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			if(shader == null) return;
+
+			shader.setInt(prop, value);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			#end
+		});
+		Lua_helper.add_callback(lua, "setShaderIntArray", function(obj:String, prop:String, values:Dynamic) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			if(shader == null) return;
+
+			shader.setIntArray(prop, values);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			#end
+		});
+		Lua_helper.add_callback(lua, "setShaderFloat", function(obj:String, prop:String, value:Float) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			if(shader == null) return;
+
+			shader.setFloat(prop, value);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			#end
+		});
+		Lua_helper.add_callback(lua, "setShaderFloatArray", function(obj:String, prop:String, values:Dynamic) {
+			#if (!flash && MODS_ALLOWED && sys)
+			var shader:FlxRuntimeShader = getShader(obj);
+			if(shader == null) return;
+
+			shader.setFloatArray(prop, values);
+			#else
+			luaTrace("Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
+			#end
+		});
+
 		Lua_helper.add_callback(lua, "getRunningScripts", function(){
 			var runningScripts:Array<String> = [];
-			for (idx in 0...Stage.instance.luaArray.length)
-				runningScripts.push(Stage.instance.luaArray[idx].scriptName);
+			for (idx in 0...PlayState.instance.luaArray.length)
+				runningScripts.push(PlayState.instance.luaArray[idx].scriptName);
 
 
 			return runningScripts;
@@ -309,7 +475,7 @@ class FunkinStage {
 			#end
 			if(doPush)
 			{
-				for (luaInstance in Stage.instance.luaArray)
+				for (luaInstance in PlayState.instance.luaArray)
 				{
 					if(luaInstance.scriptName == cervix)
 					{
@@ -364,7 +530,7 @@ class FunkinStage {
 			#end
 			if(doPush)
 			{
-				for (luaInstance in Stage.instance.luaArray)
+				for (luaInstance in PlayState.instance.luaArray)
 				{
 					if(luaInstance.scriptName == cervix)
 					{
@@ -417,7 +583,7 @@ class FunkinStage {
 			#end
 			if(doPush)
 			{
-				for (luaInstance in Stage.instance.luaArray)
+				for (luaInstance in PlayState.instance.luaArray)
 				{
 					if(luaInstance.scriptName == cervix)
 					{
@@ -456,7 +622,7 @@ class FunkinStage {
 			#end
 			if(doPush)
 			{
-				for (luaInstance in Stage.instance.luaArray)
+				for (luaInstance in PlayState.instance.luaArray)
 				{
 					if(luaInstance.scriptName == cervix)
 					{
@@ -541,7 +707,7 @@ class FunkinStage {
 
 			if(doPush)
 			{
-				for (luaInstance in Stage.instance.luaArray)
+				for (luaInstance in PlayState.instance.luaArray)
 				{
 					if(luaInstance.scriptName == cervix)
 						return true;
@@ -583,7 +749,7 @@ class FunkinStage {
 			{
 				if(!ignoreAlreadyRunning)
 				{
-					for (luaInstance in Stage.instance.luaArray)
+					for (luaInstance in PlayState.instance.luaArray)
 					{
 						if(luaInstance.scriptName == cervix)
 						{
@@ -592,7 +758,7 @@ class FunkinStage {
 						}
 					}
 				}
-				Stage.instance.luaArray.push(new FunkinStage(cervix));
+				PlayState.instance.luaArray.push(new FunkinLua(cervix));
 				return;
 			}
 			luaTrace("Script doesn't exist!", false, false, FlxColor.RED);
@@ -628,13 +794,13 @@ class FunkinStage {
 			{
 				if(!ignoreAlreadyRunning)
 				{
-					for (luaInstance in Stage.instance.luaArray)
+					for (luaInstance in PlayState.instance.luaArray)
 					{
 						if(luaInstance.scriptName == cervix)
 						{
 							//luaTrace('The script "' + cervix + '" is already running!');
 
-								Stage.instance.luaArray.remove(luaInstance);
+								PlayState.instance.luaArray.remove(luaInstance);
 							return;
 						}
 					}
@@ -1418,12 +1584,7 @@ class FunkinStage {
 			}
 		});
 		Lua_helper.add_callback(lua, "cameraSetTarget", function(target:String) {
-			var isDad:Bool = false;
-			if(target == 'dad') {
-				isDad = true;
-			}
-			PlayState.instance.moveCamera(isDad);
-			return isDad;
+			PlayState.instance.moveCamera(target);
 		});
 		Lua_helper.add_callback(lua, "cameraShake", function(camera:String, intensity:Float, duration:Float) {
 			cameraFromString(camera).shake(intensity, duration);
@@ -1542,7 +1703,6 @@ class FunkinStage {
 			}
 			leSprite.antialiasing = ClientPrefs.globalAntialiasing;
 			PlayState.instance.modchartSprites.set(tag, leSprite);
-			Stage.instance.swagBacks.set(tag, leSprite);
 			leSprite.active = true;
 		});
 		Lua_helper.add_callback(lua, "makeAnimatedLuaSprite", function(tag:String, image:String, x:Float, y:Float, ?spriteType:String = "sparrow") {
@@ -1553,10 +1713,8 @@ class FunkinStage {
 			loadFrames(leSprite, image, spriteType);
 			leSprite.antialiasing = ClientPrefs.globalAntialiasing;
 			PlayState.instance.modchartSprites.set(tag, leSprite);
-			Stage.instance.swagBacks.set(tag, leSprite);
 		});
 		Lua_helper.add_callback(lua, "makeLuaCharacter", function(tag:String, char:String, ?isPlayer:Bool = false, x:Float, y:Float) {
-			luaTrace("makeLuaCharacter is deprecated! Use makeCharacter instead", false, true);
 			tag = tag.replace('.', '');
 			resetCharacterTag(tag);
 			resetGroupTag(tag + 'Group');
@@ -1568,15 +1726,15 @@ class FunkinStage {
 
 			PlayState.instance.modchartCharacters.set(tag, leSprite);
 			PlayState.instance.modchartGroups.set(tag + 'Group', leGroup);
-			Stage.instance.swagBacks.set(tag, leSprite);
-			Stage.instance.swagBacks.set(tag + 'Group', leGroup);
 		});
 		Lua_helper.add_callback(lua, "makeLuaHealthIcon", function(tag:String, char:String, ?isPlayer:Bool = false) {
 			tag = tag.replace('.', '');
 			resetHealthIconTag(tag);
 			var leSprite:ModchartHealthIcon = new ModchartHealthIcon(char, isPlayer);
+			leSprite.visible = !ClientPrefs.hideHud;
+			leSprite.alpha = ClientPrefs.healthBarAlpha;
+			if (ClientPrefs.showcaseMode) leSprite.alpha = 0;
 			PlayState.instance.modchartHealthIcons.set(tag, leSprite);
-			Stage.instance.swagBacks.set(tag, leSprite);
 		});
 		Lua_helper.add_callback(lua, "changeIcon", function(iconCharacter:String, char:String) {
 			var icon:HealthIcon; 
@@ -1747,35 +1905,38 @@ class FunkinStage {
 			if(PlayState.instance.modchartSprites.exists(tag)) {
 				var shit:ModchartSprite = PlayState.instance.modchartSprites.get(tag);
 				if(!shit.wasAdded) {
-					if(front)
-					{
-						var layersCharacter:String = 'boyfriend';
-						switch(layersName)
+					var shit:ModchartSprite = PlayState.instance.modchartSprites.get(tag);
+					if(!shit.wasAdded) {
+						if(front)
 						{
-							case 'gf'|'girlfriend':
-								layersCharacter = 'gf';
-							case 'dad'|'opponent':
-								layersCharacter = 'dad';
-						}
-						Stage.instance.layers.get(layersCharacter).add(shit);
-					}
-					else
-					{
-						if(PlayState.instance.isDead)
-						{
-							GameOverSubstate.instance.insert(GameOverSubstate.instance.members.indexOf(GameOverSubstate.instance.boyfriend), shit);
+							var layersCharacter:String = 'boyfriend';
+							switch(layersName)
+							{
+								case 'gf'|'girlfriend':
+									layersCharacter = 'gf';
+								case 'dad'|'opponent':
+									layersCharacter = 'dad';
+							}
+							Stage.instance.layers.get(layersCharacter).add(shit);
 						}
 						else
 						{
-							Stage.instance.add(shit);
+							if(PlayState.instance.isDead)
+							{
+								GameOverSubstate.instance.insert(GameOverSubstate.instance.members.indexOf(GameOverSubstate.instance.boyfriend), shit);
+							}
+							else
+							{
+								Stage.instance.add(shit);
+							}
 						}
+						shit.wasAdded = true;
 					}
-					shit.wasAdded = true;
-					//trace('added a thing: ' + tag);
+						//trace('added a thing: ' + tag);
 				}
 			}
 		});
-		Lua_helper.add_callback(lua, "addLuaCharacter", function(tag:String, front:Bool = false, ?layersName:String = 'boyfriend') {
+		Lua_helper.add_callback(lua, "addLuaCharacter", function(tag:String, front:Bool = false, ?layersName:String = 'boyfriend')  {
 			if(PlayState.instance.modchartCharacters.exists(tag) && PlayState.instance.modchartGroups.exists(tag + 'Group')) {
 				var shit:ModchartCharacter = PlayState.instance.modchartCharacters.get(tag);
 				var shitGroup:ModchartGroup = PlayState.instance.modchartGroups.get(tag + 'Group');
@@ -1942,7 +2103,7 @@ class FunkinStage {
 			}
 
 			if(pee.wasAdded) {
-				Stage.instance.remove(pee, true);
+				getInstance().remove(pee, true);
 				pee.wasAdded = false;
 			}
 
@@ -2579,17 +2740,16 @@ class FunkinStage {
 
 				var updateHitbox = true;
 
-				if (!isanimated)
-					makeAnimatedLuaSprite(tag, image, x, y);
+				if (!isanimated) 
+					Lua_helper.callbacks['makeLuaSprite'](tag, image, x, y);
 				else
-					makeLuaSprite(tag, image, x, y);
+					Lua_helper.callbacks['makeAnimatedLuaSprite'](tag, image, x, y);
 				
-				scaleObject(tag, scalex, scaley);
-				addLuaSprite(tag, front);
+				Lua_helper.callbacks['scaleObject'](tag, scalex, scaley);
+				Lua_helper.callbacks['addLuaSprite'](tag, front);
 			}
 		});
 		// DEPRECATED, DONT MESS WITH THESE SHITS, ITS JUST THERE FOR BACKWARD COMPATIBILITY
-
 		Lua_helper.add_callback(lua, "characterPlayAnim", function(character:String, anim:String, ?forced:Bool = false, ?reverse:Bool = false, ?startFrame:Int = 0) {
 			luaTrace("characterPlayAnim is deprecated! Use playAnim instead", false, true);
 			var char:Character; 
@@ -2786,6 +2946,22 @@ class FunkinStage {
 		return PlayState.instance.modchartTexts.exists(name) ? PlayState.instance.modchartTexts.get(name) : Reflect.getProperty(PlayState.instance, name);
 	}
 
+	public function getShader(obj:String):FlxRuntimeShader
+	{
+		var killMe:Array<String> = obj.split('.');
+		var leObj:FlxSprite = getObjectDirectly(killMe[0]);
+		if(killMe.length > 1) {
+			leObj = getVarInArray(getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1]);
+		}
+
+		if(leObj != null) {
+			var shader:Dynamic = leObj.shader;
+			var shader:FlxRuntimeShader = shader;
+			return shader;
+		}
+		return null;
+	}
+
 	function getGroupStuff(leArray:Dynamic, variable:String) {
 		var killMe:Array<String> = variable.split('.');
 		if(killMe.length > 1) {
@@ -2808,6 +2984,55 @@ class FunkinStage {
 		};
 	}
 
+	function initLuaShader(name:String, ?glslVersion:Int = 120)
+	{
+		if(!ClientPrefs.shaders) return false;
+		if(PlayState.instance.runtimeShaders.exists(name))
+		{
+			luaTrace('Shader $name was already initialized!');
+			return true;
+		}
+
+		var foldersToCheck:Array<String> = [Paths.mods('shaders/')];
+		if(Paths.currentModDirectory != null && Paths.currentModDirectory.length > 0)
+			foldersToCheck.insert(0, Paths.mods(Paths.currentModDirectory + '/shaders/'));
+
+		for(mod in Paths.getGlobalMods())
+			foldersToCheck.insert(0, Paths.mods(mod + '/shaders/'));
+
+		for (folder in foldersToCheck)
+		{
+			if(FileSystem.exists(folder))
+			{
+				var frag:String = folder + name + '.frag';
+				var vert:String = folder + name + '.vert';
+				var found:Bool = false;
+				if(FileSystem.exists(frag))
+				{
+					frag = File.getContent(frag);
+					found = true;
+				}
+				else frag = null;
+
+				if (FileSystem.exists(vert))
+				{
+					vert = File.getContent(vert);
+					found = true;
+				}
+				else vert = null;
+
+				if(found)
+				{
+					PlayState.instance.runtimeShaders.set(name, [frag, vert]);
+					trace('Found shader $name!');
+					return true;
+				}
+			}
+		}
+		luaTrace('Missing shader $name .frag AND .vert files!', false, false, FlxColor.RED);
+		return false;		
+	}
+
 	function loadFrames(spr:FlxSprite, image:String, spriteType:String)
 	{
 		switch(spriteType.toLowerCase().trim())
@@ -2823,91 +3048,6 @@ class FunkinStage {
 
 			default:
 				spr.frames = Paths.getSparrowAtlas(image);
-		}
-	}
-
-	function makeLuaSprite(tag:String, image:String, x:Float, y:Float)
-	{
-		tag = tag.replace('.', '');
-		resetSpriteTag(tag);
-		var leSprite:ModchartSprite = new ModchartSprite(x, y);
-		if(image != null && image.length > 0)
-		{
-			leSprite.loadGraphic(Paths.image(image));
-		}
-		leSprite.antialiasing = ClientPrefs.globalAntialiasing;
-		PlayState.instance.modchartSprites.set(tag, leSprite);
-		Stage.instance.swagBacks.set(tag, leSprite);
-		leSprite.active = true;
-	}
-
-	function makeAnimatedLuaSprite(tag:String, image:String, x:Float, y:Float, ?spriteType:String = "sparrow")
-	{
-		tag = tag.replace('.', '');
-		resetSpriteTag(tag);
-		var leSprite:ModchartSprite = new ModchartSprite(x, y);
-		if(image != null && image.length > 0)
-		{
-			leSprite.loadGraphic(Paths.image(image));
-		}
-		leSprite.antialiasing = ClientPrefs.globalAntialiasing;
-		PlayState.instance.modchartSprites.set(tag, leSprite);
-		Stage.instance.swagBacks.set(tag, leSprite);
-		leSprite.active = true;
-	}
-
-	function addLuaSprite(tag:String, front:Bool = false, ?layersName:String = 'boyfriend')
-	{
-		if(PlayState.instance.modchartSprites.exists(tag)) {
-			var shit:ModchartSprite = PlayState.instance.modchartSprites.get(tag);
-			if(!shit.wasAdded) {
-				if(front)
-				{
-					var layersCharacter:String = 'boyfriend';
-					switch(layersName)
-					{
-						case 'gf'|'girlfriend':
-							layersCharacter = 'gf';
-						case 'dad'|'opponent':
-							layersCharacter = 'dad';
-					}
-					Stage.instance.layers.get(layersCharacter).add(shit);
-				}
-				else
-				{
-					if(PlayState.instance.isDead)
-					{
-						GameOverSubstate.instance.insert(GameOverSubstate.instance.members.indexOf(GameOverSubstate.instance.boyfriend), shit);
-					}
-					else
-					{
-						Stage.instance.add(shit);
-					}
-				}
-				shit.wasAdded = true;
-				//trace('added a thing: ' + tag);
-			}
-		}		
-	}
-
-	function scaleObject(obj:String, x:Float, y:Float, ?updateHitbox:Bool = true) {
-		if(PlayState.instance.getLuaObject(obj)!=null) {
-			var shit:FlxSprite = PlayState.instance.getLuaObject(obj);
-			shit.scale.set(x, y);
-			if(updateHitbox) shit.updateHitbox();
-			return;
-		}
-
-		var killMe:Array<String> = obj.split('.');
-		var poop:FlxSprite = getObjectDirectly(killMe[0]);
-		if(killMe.length > 1) {
-			poop = getVarInArray(getPropertyLoopThingWhatever(killMe), killMe[killMe.length-1]);
-		}
-
-		if(poop != null) {
-			poop.scale.set(x, y);
-			if(updateHitbox) poop.updateHitbox();
-			return;
 		}
 	}
 
@@ -3111,6 +3251,24 @@ class FunkinStage {
 		return v;
 		#end
 	}
+	// some fuckery fucks with linc_luajit
+	function getResult(l:State, result:Int):Any {
+		var ret:Any = null;
+
+		switch(Lua.type(l, result)) {
+			case Lua.LUA_TNIL:
+				ret = null;
+			case Lua.LUA_TBOOLEAN:
+				ret = Lua.toboolean(l, -1);
+			case Lua.LUA_TNUMBER:
+				ret = Lua.tonumber(l, -1);
+			case Lua.LUA_TSTRING:
+				ret = Lua.tostring(l, -1);
+		}
+
+		return ret;
+	}
+
 	var lastCalledFunction:String = '';
 	public function call(func:String, args:Array<Dynamic>): Dynamic{
 		#if LUA_ALLOWED
@@ -3120,7 +3278,10 @@ class FunkinStage {
 			if(lua == null) return Function_Continue;
 
 			Lua.getglobal(lua, func);
-			
+			var type:Int = Lua.type(lua, -1);
+			if (type != Lua.LUA_TFUNCTION) {
+				return Function_Continue;
+			}
 			for(arg in args) {
 				Convert.toLua(lua, arg);
 			}
@@ -3134,7 +3295,7 @@ class FunkinStage {
 			}
 			else
 			{
-				var conv:Dynamic = Convert.fromLua(lua, result);
+				var conv:Dynamic = cast getResult(lua, result);
 				Lua.pop(lua, 1);
 				if(conv == null) conv = Function_Continue;
 				return conv;
@@ -3205,7 +3366,8 @@ class FunkinStage {
 
 	#if LUA_ALLOWED
 	function resultIsAllowed(leLua:State, leResult:Null<Int>) { //Makes it ignore warnings
-		return Lua.type(leLua, leResult) >= Lua.LUA_TNIL;
+		var type:Int = Lua.type(leLua, leResult);
+		return type >= Lua.LUA_TNIL && type < Lua.LUA_TTABLE && type != Lua.LUA_TLIGHTUSERDATA;
 	}
 
 	function isErrorAllowed(error:String) {
