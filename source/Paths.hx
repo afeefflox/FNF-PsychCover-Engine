@@ -1,6 +1,5 @@
 package;
 
-import animateatlas.AtlasFrameMaker;
 import flixel.math.FlxPoint;
 import flixel.graphics.frames.FlxFrame.FlxFrameAngle;
 import openfl.geom.Rectangle;
@@ -311,22 +310,7 @@ class Paths
 		return FlxAtlasFrames.fromSparrow(image(key, library), file('images/$key.xml', library));
 		#end
 	}
-
-	inline static public function getTextureAtlas(key:String, ?library:String):FlxAtlasFrames
-	{
-		#if MODS_ALLOWED
-		var imageLoaded:FlxGraphic = returnGraphic(key);
-		var jsonExists:Bool = false;
-		if(FileSystem.exists(modsJson2('$key/spritemap'))) {
-			jsonExists = true;
-		}
 	
-		return FlxAnimate.fromAnimate((imageLoaded != null ? imageLoaded : image('$key/spritemap', library)), (jsonExists ? File.getContent(modsJson2('$key/spritemap')) : file('images/$key/spritemap.json', library)));
-		#else
-		return FlxAnimate.fromAnimate(image('$key/spritemap', library), file('images/$key/spritemap.json', library));
-		#end
-	}
-
 	inline static public function getPackerAtlas(key:String, ?library:String)
 	{
 		#if MODS_ALLOWED
