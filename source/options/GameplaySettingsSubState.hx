@@ -41,6 +41,14 @@ class GameplaySettingsSubState extends BaseOptionsMenu
 			false);
 		addOption(option);
 
+		var option:Option = new Option('Input:',
+			'What Input you should use?',
+			'inputType',
+			'string',
+			'Psych',
+			['Psych', 'Kade', 'Andromeda']);
+		addOption(option);
+
 		//I'd suggest using "Downscroll" as an example for making your own option since it is the simplest here
 		var option:Option = new Option('Downscroll', //Name
 			'If checked, notes go Down instead of Up, simple enough.', //Description
@@ -69,13 +77,12 @@ class GameplaySettingsSubState extends BaseOptionsMenu
 			'bool',
 			true);
 		addOption(option);
-		
 
-		var option:Option = new Option('Opponent Notes',
-			'If unchecked, opponent notes get hidden.',
-			'opponentStrums',
+		var option:Option = new Option('Display MS Offset On Note Hits',
+			'If checked, a offset (in ms) will appear near notes',
+			'showMs',
 			'bool',
-			true);
+			false);
 		addOption(option);
 
 		var option:Option = new Option('Disable Reset Button',

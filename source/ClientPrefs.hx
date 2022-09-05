@@ -39,6 +39,7 @@ class ClientPrefs {
 	public static var inputType:String = 'Psych';
 	public static var showMs:Bool = false;
 	public static var hiddenGF:Bool = false;
+	public static var comboStacking:Bool = true;
 	public static var gameplaySettings:Map<String, Dynamic> = [
 		'scrollspeed' => 1.0,
 		'scrolltype' => 'multiplicative', 
@@ -142,6 +143,7 @@ class ClientPrefs {
 		FlxG.save.data.animationType = animationType;
 		FlxG.save.data.inputType = inputType;
 		FlxG.save.data.hiddenGF = hiddenGF;
+		FlxG.save.data.comboStacking = comboStacking;
 		FlxG.save.flush();
 
 		var save:FlxSave = new FlxSave();
@@ -270,6 +272,9 @@ class ClientPrefs {
 		}
 		if(FlxG.save.data.shaders != null) {
 			shaders = FlxG.save.data.shaders;
+		}
+		if (FlxG.save.data.comboStacking != null) {
+			comboStacking = FlxG.save.data.comboStacking;
 		}
 		if(FlxG.save.data.gameplaySettings != null)
 		{

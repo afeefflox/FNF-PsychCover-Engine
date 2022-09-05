@@ -606,7 +606,7 @@ class WeekEditorFreeplayState extends MusicBeatState
 
 		for (i in 0...weekFile.songs.length)
 		{
-			var songText:Alphabet = new Alphabet(0, (70 * i) + 30, weekFile.songs[i][0], true, false);
+			var songText:Alphabet = new Alphabet(0, (70 * i) + 30, weekFile.songs[i][0], true);
 			songText.isMenuItem = true;
 			songText.targetY = i;
 			grpSongs.add(songText);
@@ -635,7 +635,7 @@ class WeekEditorFreeplayState extends MusicBeatState
 			{name: 'Freeplay', label: 'Freeplay'},
 		];
 		UI_box = new FlxUITabMenu(null, tabs, true);
-		UI_box.resize(250, 200);
+		UI_box.resize(350, 300);
 		UI_box.x = FlxG.width - UI_box.width - 100;
 		UI_box.y = FlxG.height - UI_box.height - 60;
 		UI_box.scrollFactor.set();
@@ -692,11 +692,20 @@ class WeekEditorFreeplayState extends MusicBeatState
 		bgColorStepperR = new FlxUINumericStepper(10, 40, 20, 255, 0, 255, 0);
 		bgColorStepperG = new FlxUINumericStepper(80, 40, 20, 255, 0, 255, 0);
 		bgColorStepperB = new FlxUINumericStepper(150, 40, 20, 255, 0, 255, 0);
-
-		var copyColor:FlxButton = new FlxButton(10, bgColorStepperR.y + 25, "Copy Color", function() {
+		var decideIconColor:FlxButton = new FlxButton(10, bgColorStepperR.y + 25, "Get Icon Color", function()
+		{
+			var coolColor = FlxColor.fromInt(CoolUtil.dominantColor(iconArray[curSelected]));
+			bgColorStepperR.value = coolColor.red;
+			bgColorStepperG.value = coolColor.green;
+			bgColorStepperB.value = coolColor.blue;
+			getEvent(FlxUINumericStepper.CHANGE_EVENT, bgColorStepperR, null);
+			getEvent(FlxUINumericStepper.CHANGE_EVENT, bgColorStepperG, null);
+			getEvent(FlxUINumericStepper.CHANGE_EVENT, bgColorStepperB, null); 
+		});
+		var copyColor:FlxButton = new FlxButton(140, decideIconColor.y + 25, "Copy Color", function() {
 			Clipboard.text = bg.color.red + ',' + bg.color.green + ',' + bg.color.blue;
 		});
-		var pasteColor:FlxButton = new FlxButton(140, copyColor.y, "Paste Color", function() {
+		var pasteColor:FlxButton = new FlxButton(240, copyColor.y, "Paste Color", function() {
 			if(Clipboard.text != null) {
 				var leColor:Array<Int> = [];
 				var splitted:Array<String> = Clipboard.text.trim().split(',');
@@ -732,6 +741,7 @@ class WeekEditorFreeplayState extends MusicBeatState
 		tab_group.add(bgColorStepperR);
 		tab_group.add(bgColorStepperG);
 		tab_group.add(bgColorStepperB);
+		tab_group.add(decideIconColor);
 		tab_group.add(copyColor);
 		tab_group.add(pasteColor);
 		tab_group.add(iconInputText);

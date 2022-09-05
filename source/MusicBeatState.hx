@@ -14,9 +14,12 @@ import flixel.util.FlxColor;
 import flixel.util.FlxGradient;
 import flixel.FlxState;
 import flixel.FlxBasic;
+import flixel.FlxCamera;
 
 class MusicBeatState extends FlxUIState
 {
+	public static var camBeat:FlxCamera;
+
 	private var curSection:Int = 0;
 	private var stepsToDo:Int = 0;
 
@@ -31,6 +34,7 @@ class MusicBeatState extends FlxUIState
 		return PlayerSettings.player1.controls;
 
 	override function create() {
+		camBeat = FlxG.camera;
 		var skip:Bool = FlxTransitionableState.skipNextTransOut;
 		super.create();
 
@@ -38,7 +42,6 @@ class MusicBeatState extends FlxUIState
 			openSubState(new CustomFadeTransition(0.7, true));
 		}
 		FlxTransitionableState.skipNextTransOut = false;
-		(cast (Lib.current.getChildAt(0), Main)).setFPSCap(ClientPrefs.framerate);
 	}
 
 	override function update(elapsed:Float)

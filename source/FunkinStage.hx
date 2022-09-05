@@ -42,6 +42,7 @@ import FunkinLua;
 #if hscript //this is sucks trust me :(
 import hscript.Parser;
 import hscript.Interp;
+import hscript.Expr;
 #end
 #if desktop
 import Discord;
@@ -60,12 +61,12 @@ class FunkinStage {
 	public var lua:State = null;
 	#end
 	#if hscript
-	public static var haxeInterp:Interp = null;
+	public static var hscript:HScript = null;
 	#end
 	public var camTarget:FlxCamera;
 	public var scriptName:String = '';
 	public var closed:Bool = false;
-	
+
 	public function new(script:String) {
 		#if LUA_ALLOWED
 		lua = LuaL.newstate();
@@ -87,123 +88,147 @@ class FunkinStage {
 				lua = null;
 				return;
 			}
-		}catch(e:Dynamic){
+		} catch(e:Dynamic) {
 			trace(e);
 			return;
 		}
 		scriptName = script;
+		initHaxeModule();
 		trace('lua file loaded succesfully:' + script);
 
-		// Lua shit
-		set('Function_StopLua', Function_StopLua);
-		set('Function_Stop', Function_Stop);
-		set('Function_Continue', Function_Continue);
-		set('luaDebugMode', false);
-		set('luaDeprecatedWarnings', true);
-		set('inChartEditor', false);
-
-		// Song/Week shit
-		set('curBpm', Conductor.bpm);
-		set('bpm', PlayState.SONG.bpm);
-		set('scrollSpeed', PlayState.SONG.speed);
-		set('crochet', Conductor.crochet);
-		set('stepCrochet', Conductor.stepCrochet);
-		set('songLength', FlxG.sound.music.length);
-		set('songName', PlayState.SONG.song);
-		set('songPath', Paths.formatToSongPath(PlayState.SONG.song));
-		set('startedCountdown', false);
-
-		set('isStoryMode', PlayState.isStoryMode);
-		set('difficulty', PlayState.storyDifficulty);
-		set('difficultyName', CoolUtil.difficulties[PlayState.storyDifficulty]);
-		set('weekRaw', PlayState.storyWeek);
-		set('week', WeekData.weeksList[PlayState.storyWeek]);
-		set('seenCutscene', PlayState.seenCutscene);
-
-		// Camera poo
-		set('cameraX', 0);
-		set('cameraY', 0);
-
-		// Screen stuff
-		set('screenWidth', FlxG.width);
-		set('screenHeight', FlxG.height);
-
-		// PlayState cringe ass nae nae bullcrap
-		set('curBeat', 0);
-		set('curStep', 0);
-		set('curDecBeat', 0);
-		set('curDecStep', 0);
-
-		set('score', 0);
-		set('misses', 0);
-		set('hits', 0);
-
-		set('rating', 0);
-		set('ratingName', '');
-		set('ratingFC', '');
-		set('version', MainMenuState.psychEngineVersion.trim());
-
-		set('inGameOver', false);
-		set('mustHitSection', false);
-		set('altAnim', false);
-		set('gfSection', false);
-
-		// Gameplay settings
-		set('healthGainMult', PlayState.instance.healthGain);
-		set('healthLossMult', PlayState.instance.healthLoss);
-		set('instakillOnMiss', PlayState.instance.instakillOnMiss);
-		set('botPlay', PlayState.instance.cpuControlled);
-		set('practice', PlayState.instance.practiceMode);
-
-		for (i in 0...4) {
-			set('defaultPlayerStrumX' + i, 0);
-			set('defaultPlayerStrumY' + i, 0);
-			set('defaultOpponentStrumX' + i, 0);
-			set('defaultOpponentStrumY' + i, 0);
+		if(!Stage.instance.debugMode)
+		{
+			set('Function_StopLua', Function_StopLua);
+			set('Function_Stop', Function_Stop);
+			set('Function_Continue', Function_Continue);
+			set('luaDebugMode', false);
+			set('luaDeprecatedWarnings', true);
+			set('inChartEditor', false);
+	
+			set('curBpm', Conductor.bpm);
+			set('bpm', PlayState.SONG.bpm);
+			set('scrollSpeed', PlayState.SONG.speed);
+			set('crochet', Conductor.crochet);
+			set('stepCrochet', Conductor.stepCrochet);
+			set('songLength', FlxG.sound.music.length);
+			set('songName', PlayState.SONG.song);
+			set('songPath', Paths.formatToSongPath(PlayState.SONG.song));
+			set('startedCountdown', false);
+	
+			set('isStoryMode', PlayState.isStoryMode);
+			set('difficulty', PlayState.storyDifficulty);
+			set('difficultyName', CoolUtil.difficulties[PlayState.storyDifficulty]);
+			set('weekRaw', PlayState.storyWeek);
+			set('week', WeekData.weeksList[PlayState.storyWeek]);
+			set('seenCutscene', PlayState.seenCutscene);
+	
+			set('cameraX', 0);
+			set('cameraY', 0);
+	
+			set('screenWidth', FlxG.width);
+			set('screenHeight', FlxG.height);
+	
+			set('curBeat', 0);
+			set('curStep', 0);
+			set('curDecBeat', 0);
+			set('curDecStep', 0);
+	
+			set('score', 0);
+			set('misses', 0);
+			set('hits', 0);
+	
+			set('rating', 0);
+			set('ratingName', '');
+			set('ratingFC', '');
+			set('version', MainMenuState.psychEngineVersion.trim());
+	
+			set('inGameOver', false);
+			set('mustHitSection', false);
+			set('altAnim', false);
+			set('gfSection', false);
+	
+			// Gameplay settings
+			set('healthGainMult', PlayState.instance.healthGain);
+			set('healthLossMult', PlayState.instance.healthLoss);
+			set('instakillOnMiss', PlayState.instance.instakillOnMiss);
+			set('botPlay', PlayState.instance.cpuControlled);
+			set('practice', PlayState.instance.practiceMode);
+	
+			for (i in 0...4) {
+				set('defaultPlayerStrumX' + i, 0);
+				set('defaultPlayerStrumY' + i, 0);
+				set('defaultOpponentStrumX' + i, 0);
+				set('defaultOpponentStrumY' + i, 0);
+			}
+	
+			// Default character positions woooo
+			set('defaultBoyfriendX', PlayState.instance.BF_X);
+			set('defaultBoyfriendY', PlayState.instance.BF_Y);
+			set('defaultOpponentX', PlayState.instance.DAD_X);
+			set('defaultOpponentY', PlayState.instance.DAD_Y);
+			set('defaultGirlfriendX', PlayState.instance.GF_X);
+			set('defaultGirlfriendY', PlayState.instance.GF_Y);
+	
+			// Character shit
+			set('boyfriendName', PlayState.SONG.player1);
+			set('dadName', PlayState.SONG.player2);
+			set('gfName', PlayState.SONG.gfVersion);
+	
+			// Some settings, no jokes
+			set('downscroll', ClientPrefs.downScroll);
+			set('middlescroll', ClientPrefs.middleScroll);
+			set('framerate', ClientPrefs.framerate);
+			set('ghostTapping', ClientPrefs.ghostTapping);
+			set('hideHud', ClientPrefs.hideHud);
+			set('timeBarType', ClientPrefs.timeBarType);
+			set('scoreZoom', ClientPrefs.scoreZoom);
+			set('cameraZoomOnBeat', ClientPrefs.camZooms);
+			set('flashingLights', ClientPrefs.flashing);
+			set('noteOffset', ClientPrefs.noteOffset);
+			set('healthBarAlpha', ClientPrefs.healthBarAlpha);
+			set('noResetButton', ClientPrefs.noReset);
+			set('lowQuality', ClientPrefs.lowQuality);
+			set('scriptName', scriptName);
+	
+			#if windows
+			set('buildTarget', 'windows');
+			#elseif linux
+			set('buildTarget', 'linux');
+			#elseif mac
+			set('buildTarget', 'mac');
+			#elseif html5
+			set('buildTarget', 'browser');
+			#elseif android
+			set('buildTarget', 'android');
+			#else
+			set('buildTarget', 'unknown');
+			#end
 		}
+		
+		// custom substate LET'S GOOOOO
+		Lua_helper.add_callback(lua, "openCustomSubstate", function(name:String, pauseGame:Bool = false) {
+			if(pauseGame)
+			{
+				PlayState.instance.persistentUpdate = false;
+				PlayState.instance.persistentDraw = true;
+				PlayState.instance.paused = true;
+				if(FlxG.sound.music != null) {
+					FlxG.sound.music.pause();
+					PlayState.instance.vocals.pause();
+				}
+			}
+			PlayState.instance.openSubState(new CustomSubstate(name));
+		});
 
-		// Default character positions woooo
-		set('defaultBoyfriendX', PlayState.instance.BF_X);
-		set('defaultBoyfriendY', PlayState.instance.BF_Y);
-		set('defaultOpponentX', PlayState.instance.DAD_X);
-		set('defaultOpponentY', PlayState.instance.DAD_Y);
-		set('defaultGirlfriendX', PlayState.instance.GF_X);
-		set('defaultGirlfriendY', PlayState.instance.GF_Y);
-
-		// Character shit
-		set('boyfriendName', PlayState.SONG.player1);
-		set('dadName', PlayState.SONG.player2);
-		set('gfName', PlayState.SONG.gfVersion);
-
-		// Some settings, no jokes
-		set('downscroll', ClientPrefs.downScroll);
-		set('middlescroll', ClientPrefs.middleScroll);
-		set('framerate', ClientPrefs.framerate);
-		set('ghostTapping', ClientPrefs.ghostTapping);
-		set('hideHud', ClientPrefs.hideHud);
-		set('timeBarType', ClientPrefs.timeBarType);
-		set('scoreZoom', ClientPrefs.scoreZoom);
-		set('cameraZoomOnBeat', ClientPrefs.camZooms);
-		set('flashingLights', ClientPrefs.flashing);
-		set('noteOffset', ClientPrefs.noteOffset);
-		set('healthBarAlpha', ClientPrefs.healthBarAlpha);
-		set('noResetButton', ClientPrefs.noReset);
-		set('lowQuality', ClientPrefs.lowQuality);
-		set('scriptName', scriptName);
-
-		#if windows
-		set('buildTarget', 'windows');
-		#elseif linux
-		set('buildTarget', 'linux');
-		#elseif mac
-		set('buildTarget', 'mac');
-		#elseif html5
-		set('buildTarget', 'browser');
-		#elseif android
-		set('buildTarget', 'android');
-		#else
-		set('buildTarget', 'unknown');
-		#end
+		Lua_helper.add_callback(lua, "closeCustomSubstate", function() {
+			if(CustomSubstate.instance != null)
+			{
+				PlayState.instance.closeSubState();
+				CustomSubstate.instance = null;
+				return true;
+			}
+			return false;
+		});		
 
 		// shader shit
 		Lua_helper.add_callback(lua, "initLuaShader", function(name:String, glslVersion:Int = 120) {
@@ -216,7 +241,7 @@ class FunkinStage {
 			#if (!flash && MODS_ALLOWED && sys)
 			if(!PlayState.instance.runtimeShaders.exists(shader) && !initLuaShader(shader))
 			{
-				luaTrace('Shader $shader is missing! Initialize it with initLuaShader', false, false, FlxColor.RED);
+				luaTrace('Shader $shader is missing!', false, false, FlxColor.RED);
 				return false;
 			}
 
@@ -377,35 +402,34 @@ class FunkinStage {
 			return runningScripts;
 		});
 		Lua_helper.add_callback(lua, "runHaxeCode", function(codeToRun:String) {
-			#if hscript
-			initHaxeInterp();
+			var retVal:Dynamic = null;
 
+			#if hscript
+			initHaxeModule();
 			try {
-				var myFunction:Dynamic = haxeInterp.expr(new Parser().parseString(codeToRun));
-				myFunction();
+				retVal = hscript.execute(codeToRun);
 			}
 			catch (e:Dynamic) {
-				switch(e)
-				{
-					case 'Null Function Pointer', 'SReturn':
-						//nothing
-					default:
-						luaTrace(scriptName + ":" + lastCalledFunction + " - " + e, false, false, FlxColor.RED);
-				}
+				luaTrace(scriptName + ":" + lastCalledFunction + " - " + e, false, false, FlxColor.RED);
 			}
+			#else
+			luaTrace("HScript isn't supported on this platform!", false, false, FlxColor.RED);
 			#end
+
+			if(retVal != null && !isOfTypes(retVal, [Bool, Int, Float, String, Array])) retVal = null;
+			if(retVal == null) Lua.pushnil(lua);
+			return retVal;
 		});
 
-		Lua_helper.add_callback(lua, "addHaxeLibrary", function(libName:String, ?libFolder:String = '') {
+		Lua_helper.add_callback(lua, "addHaxeLibrary", function(libName:String, ?libPackage:String = '') {
 			#if hscript
-			initHaxeInterp();
-
+			initHaxeModule();
 			try {
 				var str:String = '';
-				if(libFolder.length > 0)
-					str = libFolder + '.';
+				if(libPackage.length > 0)
+					str = libPackage + '.';
 
-				haxeInterp.variables.set(libName, Type.resolveClass(str + libName));
+				hscript.variables.set(libName, Type.resolveClass(str + libName));
 			}
 			catch (e:Dynamic) {
 				luaTrace(scriptName + ":" + lastCalledFunction + " - " + e, false, false, FlxColor.RED);
@@ -1080,27 +1104,52 @@ class FunkinStage {
 	
 		Lua_helper.add_callback(lua, "gamepadAnalogX", function(id:Int, ?leftStick:Bool = true)
 		{
-			return FlxG.gamepads.getByID(id).getXAxis(leftStick ? LEFT_ANALOG_STICK : RIGHT_ANALOG_STICK);
+			var controller = FlxG.gamepads.getByID(id);
+			if (controller == null)
+			{
+				return 0.0;
+			}
+			return controller.getXAxis(leftStick ? LEFT_ANALOG_STICK : RIGHT_ANALOG_STICK);
 		});
 
 		Lua_helper.add_callback(lua, "gamepadAnalogY", function(id:Int, ?leftStick:Bool = true)
 		{
-			return FlxG.gamepads.getByID(id).getYAxis(leftStick ? LEFT_ANALOG_STICK : RIGHT_ANALOG_STICK);
+			var controller = FlxG.gamepads.getByID(id);
+			if (controller == null)
+			{
+				return 0.0;
+			}
+			return controller.getYAxis(leftStick ? LEFT_ANALOG_STICK : RIGHT_ANALOG_STICK);
 		});
 
 		Lua_helper.add_callback(lua, "gamepadJustPressed", function(id:Int, name:String)
 		{
-			return Reflect.getProperty(FlxG.gamepads.getByID(id).justPressed, name);
+			var controller = FlxG.gamepads.getByID(id);
+			if (controller == null)
+			{
+				return false;
+			}
+			return Reflect.getProperty(controller.justPressed, name) == true;
 		});
 
 		Lua_helper.add_callback(lua, "gamepadPressed", function(id:Int, name:String)
 		{
-			return Reflect.getProperty(FlxG.gamepads.getByID(id).pressed, name);
+			var controller = FlxG.gamepads.getByID(id);
+			if (controller == null)
+			{
+				return false;
+			}
+			return Reflect.getProperty(controller.pressed, name) == true;
 		});
 
 		Lua_helper.add_callback(lua, "gamepadJustReleased", function(id:Int, name:String)
 		{
-			return Reflect.getProperty(FlxG.gamepads.getByID(id).justReleased, name);
+			var controller = FlxG.gamepads.getByID(id);
+			if (controller == null)
+			{
+				return false;
+			}
+			return Reflect.getProperty(controller.justReleased, name) == true;
 		});
 
 		//shitass stuff for epic coders like me B)  *image of obama giving himself a medal*
@@ -1472,14 +1521,6 @@ class FunkinStage {
 			}
 			return key;
 		});
-		Lua_helper.add_callback(lua, "addCharacterToList", function(name:String, type:String) {
-			var charType:Int = 0;
-			switch(type.toLowerCase()) {
-				case 'dad': charType = 1;
-				case 'gf' | 'girlfriend': charType = 2;
-			}
-			PlayState.instance.addCharacterToList(name, charType);
-		});
 		Lua_helper.add_callback(lua, "precacheImage", function(name:String) {
 			Paths.returnGraphic(name);
 		});
@@ -1799,32 +1840,9 @@ class FunkinStage {
 				}
 			}
 		});
-
-		Lua_helper.add_callback(lua, "addAnimationByIndices", function(obj:String, name:String, prefix:String, indices:String, framerate:Int = 24) {
-			var strIndices:Array<String> = indices.trim().split(',');
-			var die:Array<Int> = [];
-			for (i in 0...strIndices.length) {
-				die.push(Std.parseInt(strIndices[i]));
-			}
-
-			if(PlayState.instance.getLuaObject(obj, false)!=null) {
-				var pussy:FlxSprite = PlayState.instance.getLuaObject(obj,false);
-				pussy.animation.addByIndices(name, prefix, die, '', framerate, false);
-				if(pussy.animation.curAnim == null) {
-					pussy.animation.play(name, true);
-				}
-				return true;
-			}
-
-			var pussy:FlxSprite = Reflect.getProperty(getInstance(), obj);
-			if(pussy != null) {
-				pussy.animation.addByIndices(name, prefix, die, '', framerate, false);
-				if(pussy.animation.curAnim == null) {
-					pussy.animation.play(name, true);
-				}
-				return true;
-			}
-			return false;
+		
+		Lua_helper.add_callback(lua, "addAnimationByIndices", function(obj:String, name:String, prefix:String, indices:String, framerate:Int = 24, ?loop:Bool = false) {
+			return addAnimByIndices(obj, name, prefix, indices, framerate, loop);
 		});
 
 		Lua_helper.add_callback(lua, "playAnim", function(obj:String, name:String, forced:Bool = false, ?reverse:Bool = false, ?startFrame:Int = 0)
@@ -1936,7 +1954,7 @@ class FunkinStage {
 				}
 			}
 		});
-		Lua_helper.add_callback(lua, "addLuaCharacter", function(tag:String, front:Bool = false, ?layersName:String = 'boyfriend')  {
+		Lua_helper.add_callback(lua, "addLuaCharacter", function(tag:String, front:Bool = false, ?layersName:String = 'boyfriend') {
 			if(PlayState.instance.modchartCharacters.exists(tag) && PlayState.instance.modchartGroups.exists(tag + 'Group')) {
 				var shit:ModchartCharacter = PlayState.instance.modchartCharacters.get(tag);
 				var shitGroup:ModchartGroup = PlayState.instance.modchartGroups.get(tag + 'Group');
@@ -2896,6 +2914,26 @@ class FunkinStage {
 		Lua_helper.add_callback(lua, "stringEndsWith", function(str:String, end:String) {
 			return str.endsWith(end);
 		});
+		Lua_helper.add_callback(lua, "stringSplit", function(str:String, split:String) {
+			return str.split(split);
+		});
+		Lua_helper.add_callback(lua, "stringTrim", function(str:String) {
+			return str.trim();
+		});
+
+		Lua_helper.add_callback(lua, "directoryFileList", function(folder:String) {
+			var list:Array<String> = [];
+			#if sys
+			if(FileSystem.exists(folder)) {
+				for (folder in FileSystem.readDirectory(folder)) {
+					if (!list.contains(folder)) {
+						list.push(folder);
+					}
+				}
+			}
+			#end
+			return list;
+		});
 
 		call('onCreate', []);
 		#end
@@ -2906,7 +2944,16 @@ class FunkinStage {
 		var shit:Array<String> = variable.split('[');
 		if(shit.length > 1)
 		{
-			var blah:Dynamic = Reflect.getProperty(instance, shit[0]);
+			var blah:Dynamic = null;
+			if(PlayState.instance.variables.exists(shit[0]))
+			{
+				var retVal:Dynamic = PlayState.instance.variables.get(shit[0]);
+				if(retVal != null)
+					blah = retVal;
+			}
+			else
+				blah = Reflect.getProperty(instance, shit[0]);
+
 			for (i in 1...shit.length)
 			{
 				var leNum:Dynamic = shit[i].substr(0, shit[i].length - 1);
@@ -2917,9 +2964,12 @@ class FunkinStage {
 			}
 			return blah;
 		}
-		/*if(Std.isOfType(instance, Map))
-			instance.set(variable,value);
-		else*/
+
+		if(PlayState.instance.variables.exists(variable))
+		{
+			PlayState.instance.variables.set(variable, value);
+			return true;
+		}
 
 		Reflect.setProperty(instance, variable, value);
 		return true;
@@ -2929,7 +2979,16 @@ class FunkinStage {
 		var shit:Array<String> = variable.split('[');
 		if(shit.length > 1)
 		{
-			var blah:Dynamic = Reflect.getProperty(instance, shit[0]);
+			var blah:Dynamic = null;
+			if(PlayState.instance.variables.exists(shit[0]))
+			{
+				var retVal:Dynamic = PlayState.instance.variables.get(shit[0]);
+				if(retVal != null)
+					blah = retVal;
+			}
+			else
+				blah = Reflect.getProperty(instance, shit[0]);
+
 			for (i in 1...shit.length)
 			{
 				var leNum:Dynamic = shit[i].substr(0, shit[i].length - 1);
@@ -2938,12 +2997,68 @@ class FunkinStage {
 			return blah;
 		}
 
+		if(PlayState.instance.variables.exists(variable))
+		{
+			var retVal:Dynamic = PlayState.instance.variables.get(variable);
+			if(retVal != null)
+				return retVal;
+		}
+
 		return Reflect.getProperty(instance, variable);
 	}
 
 	inline static function getTextObject(name:String):FlxText
 	{
 		return PlayState.instance.modchartTexts.exists(name) ? PlayState.instance.modchartTexts.get(name) : Reflect.getProperty(PlayState.instance, name);
+	}
+
+	
+	public static function isOfTypes(value:Any, types:Array<Dynamic>)
+	{
+		for (type in types)
+		{
+			if(Std.isOfType(value, type)) return true;
+		}
+		return false;
+	}
+
+	#if hscript
+	public function initHaxeModule()
+	{
+		if(hscript == null)
+		{
+			trace('initializing haxe interp for: $scriptName');
+			hscript = new HScript(); //TO DO: Fix issue with 2 scripts not being able to use the same variable names
+		}
+	}
+	#end
+
+	static function addAnimByIndices(obj:String, name:String, prefix:String, indices:String, framerate:Int = 24, loop:Bool = false)
+	{
+		var strIndices:Array<String> = indices.trim().split(',');
+		var die:Array<Int> = [];
+		for (i in 0...strIndices.length) {
+			die.push(Std.parseInt(strIndices[i]));
+		}
+
+		if(PlayState.instance.getLuaObject(obj, false)!=null) {
+			var pussy:FlxSprite = PlayState.instance.getLuaObject(obj, false);
+			pussy.animation.addByIndices(name, prefix, die, '', framerate, loop);
+			if(pussy.animation.curAnim == null) {
+				pussy.animation.play(name, true);
+			}
+			return true;
+		}
+
+		var pussy:FlxSprite = Reflect.getProperty(getInstance(), obj);
+		if(pussy != null) {
+			pussy.animation.addByIndices(name, prefix, die, '', framerate, loop);
+			if(pussy.animation.curAnim == null) {
+				pussy.animation.play(name, true);
+			}
+			return true;
+		}
+		return false;		
 	}
 
 	public function getShader(obj:String):FlxRuntimeShader
@@ -3024,7 +3139,6 @@ class FunkinStage {
 				if(found)
 				{
 					PlayState.instance.runtimeShaders.set(name, [frag, vert]);
-					trace('Found shader $name!');
 					return true;
 				}
 			}
@@ -3329,40 +3443,6 @@ class FunkinStage {
 
 		return coverMeInPiss;
 	}
-
-	#if hscript
-	public function initHaxeInterp()
-	{
-		if(haxeInterp == null)
-		{
-			haxeInterp = new Interp();
-			haxeInterp.variables.set('FlxG', FlxG);
-			haxeInterp.variables.set('FlxSprite', FlxSprite);
-			haxeInterp.variables.set('FlxCamera', FlxCamera);
-			haxeInterp.variables.set('FlxTween', FlxTween);
-			haxeInterp.variables.set('FlxEase', FlxEase);
-			haxeInterp.variables.set('PlayState', PlayState);
-			haxeInterp.variables.set('game', PlayState.instance);
-			haxeInterp.variables.set('Paths', Paths);
-			haxeInterp.variables.set('Conductor', Conductor);
-			haxeInterp.variables.set('ClientPrefs', ClientPrefs);
-			haxeInterp.variables.set('Character', Character);
-			haxeInterp.variables.set('Alphabet', Alphabet);
-			haxeInterp.variables.set('StringTools', StringTools);
-
-			haxeInterp.variables.set('setVar', function(name:String, value:Dynamic)
-			{
-				PlayState.instance.variables.set(name, value);
-			});
-			haxeInterp.variables.set('getVar', function(name:String)
-			{
-				if(!PlayState.instance.variables.exists(name)) return null;
-				return PlayState.instance.variables.get(name);
-			});
-		}
-	}
-	#end
-
 
 	#if LUA_ALLOWED
 	function resultIsAllowed(leLua:State, leResult:Null<Int>) { //Makes it ignore warnings

@@ -1,5 +1,6 @@
 package;
 
+import openfl.display.Preloader.DefaultPreloader;
 import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSubState;
@@ -39,6 +40,7 @@ class GameOverSubstate extends MusicBeatSubstate
 	public static var instance:GameOverSubstate;
 
 	public static function resetVariables() {
+		characterName = '';
 		deathSoundName = 'fnf_loss_sfx';
 		loopSoundName = 'gameOver';
 		endSoundName = 'gameOverEnd';
@@ -55,7 +57,8 @@ class GameOverSubstate extends MusicBeatSubstate
 	public function new(x:Float, y:Float, camX:Float, camY:Float)
 	{
 		super();
-		characterName =  deathSpritesCheck(PlayState.instance.boyfriend.curCharacter);
+		if(characterName == '') characterName =  deathSpritesCheck(PlayState.instance.boyfriend.curCharacter);
+
 		PlayState.instance.setOnLuas('inGameOver', true);
 
 		Conductor.songPosition = 0;
@@ -124,6 +127,9 @@ class GameOverSubstate extends MusicBeatSubstate
 
 		if (Paths.fileExists(characterPath, TEXT))
 			return char+'-dead';
+		
+		if(char == 'bf-car' || char == 'bf-christmas')
+			return 'bf-dead';
 
 		return char;	
 	}

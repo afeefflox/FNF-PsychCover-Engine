@@ -112,7 +112,7 @@ class VisualsUISubState extends BaseOptionsMenu
 			'pauseMusic',
 			'string',
 			'Tea Time',
-			['None', 'Breakfast', 'Tea Time']);
+			['None', 'Breakfast', 'Tea Time', 'Ludumdare']);
 		addOption(option);
 		option.onChange = onChangePauseMusic;
 
@@ -128,6 +128,21 @@ class VisualsUISubState extends BaseOptionsMenu
 			'showcaseMode',
 			'bool',
 			false);
+		addOption(option);
+
+		var option:Option = new Option('Animation Long Note Sings:',
+			"Basically the animation type of long note sings",
+			'animationType',
+			'string',
+			'Normal',
+			['Normal', 'Smooth']);
+		addOption(option);
+
+		var option:Option = new Option('Combo Stacking',
+			"If unchecked, Ratings and Combo won't stack, saving on System Memory and making them easier to read",
+			'comboStacking',
+			'bool',
+			true);
 		addOption(option);
 		super();
 	}

@@ -67,10 +67,11 @@ class FunkinHaxe
 	public static var Function_Continue:Dynamic = 0;
 	public static var Function_StopHscript:Dynamic = 2;
   public var interp:Interp = new Interp();
+  public var exparser:Parser = new Parser();
   public function new(script:String) {
     #if hscript
     scriptName = script;
-    var exparser = new Parser();
+    exparser.line = 1;
     exparser.allowMetadata = true;
     exparser.allowTypes = true;
     var parsedstring = exparser.parseString(File.getContent(script));
@@ -131,6 +132,15 @@ class FunkinHaxe
       if(!PlayState.instance.variables.exists(name)) return null;
       return PlayState.instance.variables.get(name);
     });
+    interp.variables.set('removeVar', function(name:String)
+		{
+			if(PlayState.instance.variables.exists(name))
+			{
+				PlayState.instance.variables.remove(name);
+				return true;
+			}
+			return false;
+		});
     //Heh Why not I added this?
     interp.variables.set('addLibrary', function(libName:String, ?libFolder:String = '')
     {

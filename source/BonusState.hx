@@ -125,23 +125,17 @@ class BonusState extends MusicBeatState
 
 		for (i in 0...songs.length)
 		{
-			var songText:Alphabet = new Alphabet(0, (70 * i) + 30, songs[i].songName, true, false);
+			var songText:Alphabet = new Alphabet(90, 320, songs[i].songName, true);
 			songText.isMenuItem = true;
-			songText.targetY = i;
+			songText.targetY = i - curSelected;
 			grpSongs.add(songText);
 
-			if (songText.width > 980)
+			var maxWidth = 980;
+			if (songText.width > maxWidth)
 			{
-				var textScale:Float = 980 / songText.width;
-				songText.scale.x = textScale;
-				for (letter in songText.lettersArray)
-				{
-					letter.x *= textScale;
-					letter.offset.x *= textScale;
-				}
-				//songText.updateHitbox();
-				//trace(songs[i].songName + ' new scale: ' + textScale);
+				songText.scaleX = maxWidth / songText.width;
 			}
+			songText.snapToPosition();
 
 			Paths.currentModDirectory = songs[i].folder;
 			var icon:HealthIcon = new HealthIcon(songs[i].songCharacter);
@@ -156,6 +150,12 @@ class BonusState extends MusicBeatState
 			// songText.screenCenter(X);
 		}
 		WeekDataAlt.setDirectoryFromWeek();
+
+		if (songs.length < 1)
+        {
+			addSong('test', 0, 'face', FlxColor.fromRGB(0, 0, 0));
+			warning = true;
+        }
 
 		scoreText = new FlxText(FlxG.width * 0.7, 5, 0, "", 32);
 		scoreText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, RIGHT);
@@ -211,11 +211,11 @@ class BonusState extends MusicBeatState
             canMove = false;
             inMain = false;
     
-            var daText:Alphabet = new Alphabet(20, -100, "No Bonus Songs / No Cover Songs Detected! \n Press enter to return to main menu.", true, false);
+            var daText:Alphabet = new Alphabet(20, -100, "No Bonus Songs / No Cover Songs Detected! \n Press enter to return to main menu.", true);
             daText.screenCenter();
             add(daText);
     
-            var daText2:Alphabet = new Alphabet(0, 100, "Press enter to return to the main menu.", true, false);
+            var daText2:Alphabet = new Alphabet(0, 100, "Press enter to return to the main menu.", true);
             daText2.screenCenter();
             add(daText2);
         }

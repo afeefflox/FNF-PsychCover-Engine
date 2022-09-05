@@ -95,9 +95,9 @@ class CharacterEditorState extends MusicBeatState
 		camMenu.bgColor.alpha = 0;
 
 		FlxG.cameras.reset(camEditor);
-		FlxG.cameras.add(camHUD);
-		FlxG.cameras.add(camMenu);
-		FlxCamera.defaultCameras = [camEditor];
+		FlxG.cameras.add(camHUD, false);
+		FlxG.cameras.add(camMenu, false);
+		FlxG.cameras.setDefaultDrawTarget(camEditor, true);
 
 		bgLayer = new FlxTypedGroup<FlxSprite>();
 		add(bgLayer);
@@ -175,13 +175,12 @@ class CharacterEditorState extends MusicBeatState
 			{name: 'Settings', label: 'Settings'},
 		];
 
-		UI_box = new FlxUITabMenu(null, tabs, true);
-		UI_box.cameras = [camMenu];
-
-		UI_box.resize(250, 120);
-		UI_box.x = FlxG.width - 275;
-		UI_box.y = 25;
-		UI_box.scrollFactor.set();
+        UI_box = new FlxUITabMenu(null, tabs, true);
+        UI_box.cameras = [camMenu];
+        UI_box.resize(250, 120);
+        UI_box.x = FlxG.width - 275;
+        UI_box.y = 25;
+        UI_box.scrollFactor.set();
 
 		var tabs = [
 			{name: 'Character', label: 'Character'},
@@ -616,10 +615,11 @@ class CharacterEditorState extends MusicBeatState
 			for (character in characters)
 			{
 				character.animOffsets.clear();
+				character.animOffsetsPlayer.clear();
 				character.animationsArray = parsedJson.animations;
 				for (anim in character.animationsArray)
 				{
-					if(character.isPlayer) character.addOffset(anim.anim, anim.offsets_player[0], anim.offsets_player[1]);
+					character.addOffsetPlayer(anim.anim, anim.offsets_player[0], anim.offsets_player[1]);
 					character.addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
 				}
 				if(character.animationsArray[0] != null) {
@@ -957,8 +957,11 @@ class CharacterEditorState extends MusicBeatState
 				char.animation.addByPrefix(newAnim.anim, newAnim.name, newAnim.fps, newAnim.loop);
 			}
 			
-			if(!char.animOffsets.exists(newAnim.anim)) {
+			if(!char.getExistsOffsets(newAnim.anim)) {
 				char.addOffset(newAnim.anim, 0, 0);
+			}
+			if(!char.getExistsOffsets(newAnim.anim) && char.isPlayer) {
+				char.addOffsetPlayer(newAnim.anim, 0, 0);
 			}
 			char.animationsArray.push(newAnim);
 
@@ -994,8 +997,9 @@ class CharacterEditorState extends MusicBeatState
 					if(char.animation.getByName(anim.anim) != null) {
 						char.animation.remove(anim.anim);
 					}
-					if(char.animOffsets.exists(anim.anim)) {
-						char.animOffsets.remove(anim.anim);
+					if(char.getExistsOffsets(anim.anim)) {
+						var daOffset = char.getOffset(anim.anim);
+						daOffset.remove(anim.anim);
 					}
 					char.animationsArray.remove(anim);
 
@@ -1187,17 +1191,53 @@ class CharacterEditorState extends MusicBeatState
 			--i;
 		}
 		dumbTexts.clear();
-
-		for (anim => offsets in char.animOffsets)
+		
+		if (char.animOffsets != null)
 		{
-			var text:FlxText = new FlxText(10, 20 + (18 * daLoop), 0, anim + ": " + offsets, 15);
+			var text:FlxText = new FlxText(10, 20 + (18 * daLoop), 0, 'Offsets:', 15);
 			text.setFormat(null, 16, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 			text.scrollFactor.set();
 			text.borderSize = 1;
 			dumbTexts.add(text);
 			text.cameras = [camHUD];
-
 			daLoop++;
+	
+			for (anim => offsets in char.animOffsets)
+			{
+				var text:FlxText = new FlxText(10, 20 + (18 * daLoop), 0, anim + ": " + offsets, 15);
+				text.setFormat(null, 16, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+				text.scrollFactor.set();
+				text.borderSize = 1;
+				dumbTexts.add(text);
+				text.cameras = [camHUD];
+	
+				daLoop++;
+			}
+		}
+
+		if (char.animOffsetsPlayer != null)
+		{
+			daLoop++;
+
+			var text:FlxText = new FlxText(10, 20 + (18 * daLoop), 0, 'Offsets Player:', 15);
+			text.setFormat(null, 16, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+			text.scrollFactor.set();
+			text.borderSize = 1;
+			dumbTexts.add(text);
+			text.cameras = [camHUD];
+			daLoop++;
+
+			for (anim => playerOffsets in char.animOffsetsPlayer)
+			{
+				var text:FlxText = new FlxText(10, 20 + (18 * daLoop), 0, anim + ": " + playerOffsets, 15);
+				text.setFormat(null, 16, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+				text.scrollFactor.set();
+				text.borderSize = 1;
+				dumbTexts.add(text);
+				text.cameras = [camHUD];
+	
+				daLoop++;
+			}			
 		}
 
 		textAnim.visible = true;
@@ -1334,8 +1374,20 @@ class CharacterEditorState extends MusicBeatState
 				ghostChar.animation.addByPrefix(animAnim, animName, animFps, animLoop);
 			}
 
-			if(anim.offsets != null && anim.offsets.length > 1) {
-				ghostChar.addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+			if(ghostChar.isPlayer)
+			{
+				if(anim.offsets_player != null && anim.offsets_player.length > 1) {
+					ghostChar.addOffsetPlayer(anim.anim, anim.offsets_player[0], anim.offsets_player[1]);
+				}
+				else if(anim.offsets != null && anim.offsets.length > 1 && anim.offsets_player == null) {
+					ghostChar.addOffsetPlayer(anim.anim, anim.offsets[0], anim.offsets[1]);
+				}
+			}
+			else
+			{
+				if(anim.offsets != null && anim.offsets.length > 1) {
+					ghostChar.addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+				}
 			}
 		}
 
@@ -1396,6 +1448,7 @@ class CharacterEditorState extends MusicBeatState
 
 	override function update(elapsed:Float)
 	{
+		MusicBeatState.camBeat = FlxG.camera;
 		if(char.animationsArray[curAnim] != null) {
 			textAnim.text = char.animationsArray[curAnim].anim;
 
@@ -1416,11 +1469,6 @@ class CharacterEditorState extends MusicBeatState
 		var blockInput:Bool = false;
 		for (inputText in blockPressWhileTypingOn) {
 			if(inputText.hasFocus) {
-				/*if(FlxG.keys.pressed.CONTROL && FlxG.keys.justPressed.V && Clipboard.text != null) { //Copy paste
-					inputText.text = ClipboardAdd(inputText.text);
-					inputText.caretIndex = inputText.text.length;
-					getEvent(FlxUIInputText.CHANGE_EVENT, inputText, null, []);
-				}*/
 				FlxG.sound.muteKeys = [];
 				FlxG.sound.volumeDownKeys = [];
 				FlxG.sound.volumeUpKeys = [];
@@ -1527,12 +1575,22 @@ class CharacterEditorState extends MusicBeatState
 				if (FlxG.keys.justPressed.T)
 				{
 					var offsets:Array<Int> = char.animationsArray[curAnim].offsets;
-					if(char.isPlayer) offsets = char.animationsArray[curAnim].offsets_player;
+					var offsetsPlayer:Array<Int> = char.animationsArray[curAnim].offsets_player;
 
 					offsets = [0, 0];
+					offsetsPlayer = [0, 0];
 
-					char.addOffset(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
-					ghostChar.addOffset(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
+					if(char.isPlayer)
+					{
+						char.addOffsetPlayer(char.animationsArray[curAnim].anim, offsetsPlayer[0], offsetsPlayer[1]);
+						ghostChar.addOffsetPlayer(char.animationsArray[curAnim].anim, offsetsPlayer[0], offsetsPlayer[1]);
+					}
+					else
+					{
+						char.addOffset(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
+						ghostChar.addOffset(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
+					}
+
 					genBoyOffsets();
 				}
 
@@ -1555,9 +1613,17 @@ class CharacterEditorState extends MusicBeatState
 						if(char.isPlayer) offsets = char.animationsArray[curAnim].offsets_player;
 						offsets[arrayVal] += negaMult * multiplier;
 
-						char.addOffset(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
-						ghostChar.addOffset(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
-						
+						if(char.isPlayer)
+						{
+							char.addOffsetPlayer(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
+							ghostChar.addOffsetPlayer(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
+						}
+						else
+						{
+							char.addOffset(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
+							ghostChar.addOffset(char.animationsArray[curAnim].anim, offsets[0], offsets[1]);
+						}
+
 						char.playAnim(char.animationsArray[curAnim].anim, false);
 						if(ghostChar.animation.curAnim != null && char.animation.curAnim != null && char.animation.curAnim.name == ghostChar.animation.curAnim.name) {
 							ghostChar.playAnim(char.animation.curAnim.name, false);
@@ -1642,12 +1708,14 @@ class CharacterEditorState extends MusicBeatState
 			"splashSkin": char.splashSkin,
 		
 			"position":	char.positionArray,
+			"player_position": char.playerPositionArray,
 			"camera_position": char.cameraPosition,
 			"playerCamera_position": char.playerCameraPosition,
 		
 			"flip_x": char.originalFlipX,
 			"no_antialiasing": char.noAntialiasing,
-			"healthbar_colors": char.healthColorArray
+			"healthbar_colors": char.healthColorArray,
+			"isPlayerChar": char.wasPlayer
 		});
 		FlxG.save.flush();
 	}

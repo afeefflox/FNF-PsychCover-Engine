@@ -53,6 +53,13 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		option.onChange = onChangeAntiAliasing; //Changing onChange is only needed if you want to make a special interaction after it changes the value
 		addOption(option);
 
+		var option:Option = new Option('Shaders', //Name
+			'If unchecked, disables shaders.\nIt\'s used for some visual effects, and also CPU intensive for weaker PCs.', //Description
+			'shaders', //Save data variable name
+			'bool', //Variable type
+			true); //Default value
+		addOption(option);
+		
 		#if !html5 //Apparently other framerates isn't correctly supported on Browser? Probably it has some V-Sync shit enabled by default, idk
 		var option:Option = new Option('Framerate',
 			"Pretty self explanatory, isn't it?",
@@ -66,17 +73,6 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		option.displayFormat = '%v FPS';
 		option.onChange = onChangeFramerate;
 		#end
-
-		/*
-		var option:Option = new Option('Persistent Cached Data',
-			'If checked, images loaded will stay in memory\nuntil the game is closed, this increases memory usage,\nbut basically makes reloading times instant.',
-			'imagesPersist',
-			'bool',
-			false);
-		option.onChange = onChangePersistentData; //Persistent Cached Data changes FlxGraphic.defaultPersist
-		addOption(option);
-		*/
-
 		super();
 	}
 
@@ -88,6 +84,18 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 			var sprite:FlxSprite = sprite; //Don't judge me ok
 			if(sprite != null && (sprite is FlxSprite) && !(sprite is FlxText)) {
 				sprite.antialiasing = ClientPrefs.globalAntialiasing;
+			}
+		}
+	}
+
+	function onChangeVisible()
+	{
+		for (sprite in members)
+		{
+			var sprite:Dynamic = sprite; //Make it check for FlxSprite instead of FlxBasic
+			var sprite:Character = sprite; //Don't judge me ok
+			if(sprite != null && (sprite is Character) && sprite.curCharacter == 'gf' && !(sprite is FlxText)) {
+				sprite.visible = ClientPrefs.hiddenGF;
 			}
 		}
 	}

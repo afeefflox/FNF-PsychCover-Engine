@@ -56,9 +56,10 @@ typedef AnimArray = {
 class Character extends FlxSprite
 {
 	public var animOffsets:Map<String, Array<Dynamic>>;
+	public var animOffsetsPlayer:Map<String, Array<Dynamic>>;
 	public var debugMode:Bool = false;
 
-	public var isPlayer:Bool = false;
+	public var isPlayer(default, set):Bool = false;
 	public var wasPlayer:Bool = false;
 	public var curCharacter:String = DEFAULT_CHARACTER;
 
@@ -70,7 +71,6 @@ class Character extends FlxSprite
 	public var animationNotes:Array<Dynamic> = [];
 	public var stunned:Bool = false;
 	public var singDuration:Float = 4; //Multiplier of how long a character holds the sing pose'
-	public var lastNoteHitTime:Float = -60000;
 	public var idleSuffix:String = '';
 	public var danceIdle:Bool = false; //Character use "danceLeft" and "danceRight" instead of "idle"
 	public var stopIdle:Bool = false; //Character use Disabled Idle :/ from Blantados
@@ -100,15 +100,17 @@ class Character extends FlxSprite
 	public var healthColorArray:Array<Int> = [255, 0, 0];
 
 	public static var DEFAULT_CHARACTER:String = 'bf'; //In case a character is missing, it will use BF on its place
+	function set_isPlayer(value:Bool):Bool
+	{
+		return isPlayer = value;
+	}
+
 	public function new(x:Float, y:Float, ?character:String = 'bf', ?isPlayer:Bool = false)
 	{
 		super(x, y);
 
-		#if (haxe >= "4.0.0")
-		animOffsets = new Map();
-		#else
 		animOffsets = new Map<String, Array<Dynamic>>();
-		#end
+		animOffsetsPlayer = new Map<String, Array<Dynamic>>();
 		curCharacter = character;
 		this.isPlayer = isPlayer;
 		antialiasing = ClientPrefs.globalAntialiasing;
@@ -238,49 +240,31 @@ class Character extends FlxSprite
 
 				antialiasing = !noAntialiasing;
 				if(!ClientPrefs.globalAntialiasing) antialiasing = false;
-
 				animationsArray = json.animations;
-				if(animationsArray != null && animationsArray.length > 0) {
-					for (anim in animationsArray) {
-						var animAnim:String = '' + anim.anim;
-						var animName:String = '' + anim.name;
-						var animFps:Int = anim.fps;
-						var animLoop:Bool = !!anim.loop; //Bruh
-						var animIndices:Array<Int> = anim.indices;
-						if(animIndices != null && animIndices.length > 0) {
-							animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
-						} else {
-							animation.addByPrefix(animAnim, animName, animFps, animLoop);
-						}
-
-						if(isPlayer)
-						{
-							if(anim.offsets_player != null && anim.offsets_player.length > 1) {
-								addOffset(anim.anim, anim.offsets_player[0], anim.offsets_player[1]);
-							}
-							else if(anim.offsets != null && anim.offsets.length > 1 && anim.offsets_player == null) {
-								addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
-							}
-						}
-						else
-						{
-							if(anim.offsets != null && anim.offsets.length > 1) {
-								addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
-							}
-						}
-					}
-				} else {
-					quickAnimAdd('idle', 'BF idle dance');
-				}
+				reloadAnimation();
 				//trace('Loaded file to character ' + curCharacter);
 		}
 		originalFlipX = flipX;
 		if(animOffsets.exists('singLEFTmiss') || animOffsets.exists('singDOWNmiss') || animOffsets.exists('singUPmiss') || animOffsets.exists('singRIGHTmiss')) hasMissAnimations = true;
 		recalculateDanceIdle();
 		dance();
+		
+		if(curCharacter == 'pico-speaker')
+		{
+			skipDance = true;
+			loadMappedAnims();
+			playAnim("shoot1");
+		}
 
+		animation.finishCallback = function(name:String) {
+			if(animation.getByName(name + '-loop') != null)
+				playAnim(name + '-loop');
+		};
+
+		
 		if (isPlayer)
 		{
+
 			flipX = !flipX;
 			if (!curCharacter.contains('bf') && !wasPlayer)
 				swapAnimations();
@@ -290,12 +274,35 @@ class Character extends FlxSprite
 			if (curCharacter.contains('bf') || wasPlayer)
 				swapAnimations();
 		}
+	}
 
-		if(curCharacter == 'pico-speaker')
-		{
-			skipDance = true;
-			loadMappedAnims();
-			playAnim("shoot1");
+	public function reloadAnimation() {
+		if(animationsArray != null && animationsArray.length > 0) {
+			for (anim in animationsArray) {
+				var animAnim:String = '' + anim.anim;
+				var animName:String = '' + anim.name;
+				var animFps:Int = anim.fps;
+				var animLoop:Bool = !!anim.loop; //Bruh
+				var animIndices:Array<Int> = anim.indices;
+				if(animIndices != null && animIndices.length > 0) {
+					animation.addByIndices(animAnim, animName, animIndices, "", animFps, animLoop);
+				} else {
+					animation.addByPrefix(animAnim, animName, animFps, animLoop);
+				}
+
+				if(anim.offsets_player != null && anim.offsets_player.length > 1) {
+					addOffsetPlayer(anim.anim, anim.offsets_player[0], anim.offsets_player[1]);
+				}
+				else if(anim.offsets != null && anim.offsets.length > 1 && anim.offsets_player == null) {
+					addOffsetPlayer(anim.anim, anim.offsets[0], anim.offsets[1]);
+				}
+
+				if(anim.offsets != null && anim.offsets.length > 1) {
+					addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+				}
+			}
+		} else {
+			quickAnimAdd('idle', 'BF idle dance');
 		}
 	}
 
@@ -380,25 +387,39 @@ class Character extends FlxSprite
 				if(animation.curAnim.finished) playAnim(animation.curAnim.name, false, false, animation.curAnim.frames.length - 3);
 			}
 
-			if (!isPlayer)
+			if (isPlayer)
 			{
 				if (animation.curAnim.name.startsWith('sing'))
 				{
 					holdTimer += elapsed;
+					//idk how this work Loop Point lol
+					animation.curAnim.loopPoint = 3-4-5-6-7;
+				}
+				else
+					holdTimer = 0;
+		
+				if (animation.curAnim.name.endsWith('miss') && animation.curAnim.finished && !debugMode)
+				{
+					if(danceIdle)
+						playAnim('danceLeft' + idleSuffix, true, false, 10);
+					else
+						playAnim('idle' + idleSuffix, true, false, 10);
+				}				
+			}
+			else
+			{
+				if (animation.curAnim.name.startsWith('sing'))
+				{
+					holdTimer += elapsed;
+					//idk how this work Loop Point lol
+					animation.curAnim.loopPoint = 3-4-5-6-7;
 				}
 
 				if (holdTimer >= Conductor.stepCrochet * 0.0011 * singDuration)
 				{
-					if (danceIdle)
-						playAnim('danceLeft'); // overridden by dance correctly later
 					dance();
 					holdTimer = 0;
 				}
-			}
-
-			if(animation.curAnim.finished && animation.getByName(animation.curAnim.name + '-loop') != null)
-			{
-				playAnim(animation.curAnim.name + '-loop');
 			}
 		}
 		super.update(elapsed);
@@ -411,9 +432,7 @@ class Character extends FlxSprite
 	 */
 	public function dance()
 	{
-		if (lastNoteHitTime + 250 > Conductor.songPosition) return; // 250 ms until dad dances
-		if (animation.curAnim != null && !animation.curAnim.name.startsWith("sing") && !animation.curAnim.finished) return;
-		if (!debugMode && !skipDance && !specialAnim || stopIdle)
+		if (!debugMode && !skipDance && !specialAnim)
 		{
 			if(danceIdle)
 			{
@@ -429,17 +448,16 @@ class Character extends FlxSprite
 			}
 		}
 	}
-
+	
 	public function playAnim(AnimName:String, Force:Bool = false, Reversed:Bool = false, Frame:Int = 0):Void
 	{
-		if (AnimName.startsWith("sing")) {
-			lastNoteHitTime = Conductor.songPosition;
-		}
 		specialAnim = false;
+		//idk this is sort of better
+		//if(animation.name == AnimName) 
 		animation.play(AnimName, Force, Reversed, Frame);
 
-		var daOffset = animOffsets.get(AnimName);
-		if (animOffsets.exists(AnimName))
+		var daOffset = getOffset(AnimName);
+		if (getExistsOffsets(AnimName))
 		{
 			offset.set(daOffset[0], daOffset[1]);
 		}
@@ -462,6 +480,21 @@ class Character extends FlxSprite
 				danced = !danced;
 			}
 		}
+	}
+
+	public function getOffset(name:String){
+		if(isPlayer)
+			return animOffsetsPlayer.get(name);
+		else if(animOffsets.exists(name)) 
+			return animOffsets.get(name);
+		return null;
+	}
+
+	public function getExistsOffsets(name:String):Bool {
+		if(isPlayer)
+			return animOffsetsPlayer.exists(name);
+		else
+			return animOffsets.exists(name);
 	}
 
 	function loadMappedAnims():Void
@@ -507,6 +540,11 @@ class Character extends FlxSprite
 	public function addOffset(name:String, x:Float = 0, y:Float = 0)
 	{
 		animOffsets[name] = [x, y];
+	}
+
+	public function addOffsetPlayer(name:String, x:Float = 0, y:Float = 0)
+	{
+		animOffsetsPlayer[name] = [x, y];
 	}
 
 	public function quickAnimAdd(name:String, anim:String)
