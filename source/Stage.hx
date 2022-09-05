@@ -44,6 +44,7 @@ class Stage extends FlxTypedGroup<FlxBasic>
     public var curStage:String = DEFAULT_STAGE;
     public var defaultCamZoom:Float = 1.05;
     public static var DEFAULT_STAGE:String = 'stage'; //In case a stage is missing, it will use Stage on its place
+	public var debugMode:Bool = false;
 	public static var instance:Stage;
 	public var luaArray:Array<FunkinStage> = [];
     public var foreground:FlxTypedGroup<FlxBasic> = new FlxTypedGroup<FlxBasic>(); // stuff layered above every other layer
@@ -56,8 +57,6 @@ class Stage extends FlxTypedGroup<FlxBasic>
         "gf"=>new FlxTypedGroup<FlxBasic>(), // stuff that should be layered infront of the gf but below the other characters and foreground
 		"foreground"=>new FlxTypedGroup<FlxBasic>(), // stuff that should be layered infront of the characters 
     ];
-	public var songName:String = Paths.formatToSongPath(PlayState.SONG.song);
-
     //sometimes  public var is for event function
 	
 	//Week2
@@ -207,26 +206,6 @@ class Stage extends FlxTypedGroup<FlxBasic>
 
 				phillyStreet = new BGSprite('philly/street','week3', -40, 50);
 				add(phillyStreet);
-
-				blammedLightsBlack = new BGSprite(null, FlxG.width * -0.5, FlxG.height * -0.5, 0, 0);
-				blammedLightsBlack.makeGraphic(Std.int(FlxG.width * 2), Std.int(FlxG.height * 2), FlxColor.BLACK);
-				blammedLightsBlack.alpha = 0;
-				add(blammedLightsBlack);
-
-                phillyWindowEvent = new BGSprite('philly/window','week3', phillyWindow.x, phillyWindow.y, 0.3, 0.3);
-                phillyWindowEvent.setGraphicSize(Std.int(phillyWindowEvent.width * 0.85));
-                phillyWindowEvent.updateHitbox();
-                phillyWindowEvent.visible = false;
-                add(phillyWindowEvent);
-
-				phillyGlowGradient = new PhillyGlow.PhillyGlowGradient(-400, 225); //This shit was refusing to properly load FlxGradient so fuck it
-				phillyGlowGradient.visible = false;
-				if(!ClientPrefs.flashing) phillyGlowGradient.intendedAlpha = 0.7;
-				add(phillyGlowGradient);
-
-				phillyGlowParticles = new FlxTypedGroup<PhillyGlow.PhillyGlowParticle>();
-				phillyGlowParticles.visible = false;
-				add(phillyGlowParticles);
 			case 'limo':
 				var skyBG:BGSprite = new BGSprite('limo/limoSunset','week4', -120, -50, 0.1, 0.1);
 				add(skyBG);
@@ -632,13 +611,10 @@ class Stage extends FlxTypedGroup<FlxBasic>
 
 	function moveTank(?elapsed:Float = 0):Void
 	{
-		if(!PlayState.instance.inCutscene)
-		{
-			tankAngle += elapsed * tankSpeed;
-			tankGround.angle = tankAngle - 90 + 15;
-			tankGround.x = tankX + 1500 * Math.cos(Math.PI / 180 * (1 * tankAngle + 180));
-			tankGround.y = 1300 + 1100 * Math.sin(Math.PI / 180 * (1 * tankAngle + 180));
-		}
+		tankAngle += elapsed * tankSpeed;
+		tankGround.angle = tankAngle - 90 + 15;
+		tankGround.x = tankX + 1500 * Math.cos(Math.PI / 180 * (1 * tankAngle + 180));
+		tankGround.y = 1300 + 1100 * Math.sin(Math.PI / 180 * (1 * tankAngle + 180));
 	}
 
     override function update(elapsed:Float)
@@ -792,7 +768,7 @@ class Stage extends FlxTypedGroup<FlxBasic>
 			}
 			luaArray = [];
 		}
-
+		if(FunkinStage.hscript != null) FunkinStage.hscript = null;
 		super.destroy();
 	}
 

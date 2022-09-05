@@ -203,15 +203,6 @@ class PauseSubState extends MusicBeatSubstate
 					FlxG.sound.music.volume = 0;
 					PlayState.changedDifficulty = true;
 					PlayState.chartingMode = false;
-					skipTimeTracker = null;
-
-					if(skipTimeText != null)
-					{
-						skipTimeText.kill();
-						remove(skipTimeText);
-						skipTimeText.destroy();
-					}
-					skipTimeText = null;
 					return;
 				}
 
@@ -225,6 +216,7 @@ class PauseSubState extends MusicBeatSubstate
 					close();
 				case 'Change Difficulty':
 					menuItems = difficultyChoices;
+					deleteSkipTimeText();
 					regenMenu();
 				case 'Toggle Practice Mode':
 					PlayState.instance.practiceMode = !PlayState.instance.practiceMode;
@@ -352,7 +344,7 @@ class PauseSubState extends MusicBeatSubstate
 		}
 
 		for (i in 0...menuItems.length) {
-			var item = new Alphabet(0, 70 * i + 30, menuItems[i], true, false);
+			var item = new Alphabet(90, 320, menuItems[i], true);
 			item.isMenuItem = true;
 			item.targetY = i;
 			grpMenuShit.add(item);
@@ -386,5 +378,17 @@ class PauseSubState extends MusicBeatSubstate
 	function updateSkipTimeText()
 	{
 		skipTimeText.text = FlxStringUtil.formatTime(Math.max(0, Math.floor(curTime / 1000)), false) + ' / ' + FlxStringUtil.formatTime(Math.max(0, Math.floor(FlxG.sound.music.length / 1000)), false);
+	}
+
+	function deleteSkipTimeText()
+	{
+		if(skipTimeText != null)
+		{
+			skipTimeText.kill();
+			remove(skipTimeText);
+			skipTimeText.destroy();
+		}
+		skipTimeText = null;
+		skipTimeTracker = null;
 	}
 }
