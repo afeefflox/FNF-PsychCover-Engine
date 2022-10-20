@@ -56,6 +56,14 @@ class VisualsUISubState extends BaseOptionsMenu
 			['Time Left', 'Time Elapsed', 'Song Name', 'Disabled']);
 		addOption(option);
 
+		var option:Option = new Option('User Interface:',
+			"What should the User Interface display?",
+			'uiType',
+			'string',
+			'Psych',
+			['Vanilla', 'Psych', 'Vanilla With Healthbar color']);
+		addOption(option);
+
 		var option:Option = new Option('Flashing Lights',
 			"Uncheck this if you're sensitive to flashing lights!",
 			'flashing',

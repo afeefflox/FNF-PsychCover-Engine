@@ -52,22 +52,26 @@ class StageDataEditorState extends MusicBeatState {
 	var dadLayersGroup:FlxTypedGroup<FlxBasic>;
     var pauseMusic:FlxSound;
 
+    public var boyfriendMap:Map<String, Character> = new Map<String, Character>();
+	public var dadMap:Map<String, Character> = new Map<String, Character>();
+	public var gfMap:Map<String, Character> = new Map<String, Character>();
+
     public var positions:Map<String,FlxPoint> = [
 		"boyfriend"=> FlxPoint.get(770, 100),
 		"dad"=> FlxPoint.get(100, 100),
 		"gf"=> FlxPoint.get(400,130)
 	];
 
-    public var groups:Map<String,FlxSpriteGroup> = [
-		"boyfriend"=> new FlxSpriteGroup(770, 100),
-		"dad"=> new FlxSpriteGroup(100, 100),
-		"gf"=>  new FlxSpriteGroup(400,130)
-	];
-
     public var camera_position:Map<String,FlxPoint> = [
 		"boyfriend"=> FlxPoint.get(0, 0),
 		"dad"=> FlxPoint.get(0, 0),
 		"gf"=> FlxPoint.get(0, 0),
+	];
+
+    public var groups:Map<String,FlxSpriteGroup> = [
+		"boyfriend"=> new FlxSpriteGroup(770, 100),
+		"dad"=> new FlxSpriteGroup(100, 100),
+		"gf"=>  new FlxSpriteGroup(400,130)
 	];
 
     //Stage Data
@@ -80,10 +84,9 @@ class StageDataEditorState extends MusicBeatState {
     public var gf:Character;
     public var dad:Character;
 
-
-	public var daBf:String;
-	public var daGf:String;
-	public var daDad:String;
+    //Stage Scripts Shits
+    public var luaArray:Array<FunkinStage> = [];
+    public var haxeArray:Array<FunkinHaxe> = [];
 
     var charBF:String = 'bf';
     var charGF:String = 'gf';
@@ -118,37 +121,33 @@ class StageDataEditorState extends MusicBeatState {
     var curAnim:Int = 0;
 	var curCharString:String;
 	var curChars:Array<Character>;
+    var curGroups:Array<FlxSpriteGroup>;
 
     //Stage Flies
     var cameraPositions:Array<FlxPoint>;
     var curCameraPosition:FlxPoint;
     var charsPosition:Array<FlxPoint>;
     var curCharPosition:FlxPoint;
+    var charsGroup:Array<FlxSpriteGroup>;
+    var curGroup:FlxSpriteGroup;
     public static var songName:String = '';
 
     private var blockPressWhileTypingOn:Array<FlxUIInputText> = [];
 	private var blockPressWhileTypingOnStepper:Array<FlxUINumericStepper> = [];
 	private var blockPressWhileScrolling:Array<FlxUIDropDownMenuCustom> = [];
 
-    public function new(daStage:String = 'stage', goToPlayState:Bool = true)
+    public function new(?daBoyfriend:String = 'bf', ?daOpponent:String = 'dad', ?daGF:String = 'gf', ?daStage:String = 'stage', goToPlayState:Bool = true)
     {
         super();
+        this.charBF = daBoyfriend;
+        this.charDad = daOpponent;
+        this.charGF = daGF;
         this.daStage = daStage;
         this.goToPlayState = goToPlayState;
     }
 
     override function create()
     {
-        pauseMusic = new FlxSound();
-		if(songName != null) {
-			pauseMusic.loadEmbedded(Paths.music(songName), true, true);
-		} else if (songName != 'None') {
-			pauseMusic.loadEmbedded(Paths.music(Paths.formatToSongPath(ClientPrefs.pauseMusic)), true, true);
-		}
-		pauseMusic.volume = 0;
-		pauseMusic.play(false, FlxG.random.int(0, Std.int(pauseMusic.length / 2)));
-        FlxG.sound.list.add(pauseMusic);
-
 		camEditor = new FlxCamera();
 		camHUD = new FlxCamera();
 		camHUD.bgColor.alpha = 0;
@@ -166,23 +165,26 @@ class StageDataEditorState extends MusicBeatState {
         stageGroup = new FlxTypedGroup<FlxBasic>();
         add(stageGroup);
 
-		// Characters
+        // Characters
 		gf = new Character(0, 0, charGF);
-		startCharacterPos(gf);
+        gf.x += gf.positionArray[0];
+		gf.y += gf.positionArray[1];
         groups.get('gf').add(gf);
         gfLayersGroup = new FlxTypedGroup<FlxBasic>();
         add(groups.get('gf'));
         add(gfLayersGroup);
 
         dad = new Character(0, 0, charDad);
-        startCharacterPos(dad);
+        dad.x += dad.positionArray[0];
+		dad.y += dad.positionArray[1];
         groups.get('dad').add(dad);
         add(groups.get('dad'));
         dadLayersGroup = new FlxTypedGroup<FlxBasic>();
         add(dadLayersGroup);
 
 		boyfriend = new Character(0, 0, charBF, true);
-        startCharacterPos(boyfriend);
+        boyfriend.x += boyfriend.positionArray[0];
+		boyfriend.y += boyfriend.positionArray[1];
         groups.get('boyfriend').add(boyfriend);
         add(groups.get('boyfriend'));
         boyfriendLayersGroup = new FlxTypedGroup<FlxBasic>();
@@ -195,6 +197,9 @@ class StageDataEditorState extends MusicBeatState {
 
         charsPosition = [positions.get('dad'), positions.get('boyfriend'), positions.get('gf')];
         curCharPosition = charsPosition[curCharIndex];
+
+        curGroups = [groups.get('dad'), groups.get('boyfriend'), groups.get('gf')];
+        curGroup = curGroups[curCharIndex];
 
         cameraPositions = [camera_position.get('dad'), camera_position.get('boyfriend'), camera_position.get('gf')];
         curCameraPosition = cameraPositions[curCharIndex];
@@ -230,7 +235,6 @@ class StageDataEditorState extends MusicBeatState {
 
         var tabs = [
             {name: 'Stage', label: 'Stage'},
-            {name: 'Characters', label: 'Characters'},
         ];
 
         UI_stagebox = new FlxUITabMenu(null, tabs, true);
@@ -244,18 +248,12 @@ class StageDataEditorState extends MusicBeatState {
 
         addSettingsUI();
         addStageUI();
-        addCharactersUI();
         UI_stagebox.selected_tab_id = 'Stage';
 
         FlxG.mouse.visible = true;
         reloadStageOptions();
 
         super.create();
-    }
-
-    function startCharacterPos(character:Character) {
-        character.x += character.positionArray[0];
-		character.y += character.positionArray[1];
     }
 
     var stageDropDown:FlxUIDropDownMenuCustom;
@@ -354,7 +352,8 @@ class StageDataEditorState extends MusicBeatState {
         UI_stagebox.addGroup(tab_group);
     }
 
-    var player1DropDown:FlxUIDropDownMenuCustom;
+
+    /*var player1DropDown:FlxUIDropDownMenuCustom;
     var gfVersionDropDown:FlxUIDropDownMenuCustom;
     var player2DropDown:FlxUIDropDownMenuCustom;
     function addCharactersUI() {
@@ -403,7 +402,6 @@ class StageDataEditorState extends MusicBeatState {
 
 	function reloadCharacterDropDown(FlxUIDropDown:FlxUIDropDownMenuCustom, daString:String) {
 		var charsLoaded:Map<String, Bool> = new Map();
-
 		#if MODS_ALLOWED
 		characterList = [];
 		var directories:Array<String> = [Paths.mods('characters/'), Paths.mods(Paths.currentModDirectory + '/characters/'), Paths.getPreloadPath('characters/')];
@@ -433,35 +431,44 @@ class StageDataEditorState extends MusicBeatState {
 	}
 
     function loadChar(character:String, newCharacter:String) {
+		var characterMap = boyfriendMap;
         var char:Character = boyfriend;
-        switch(character)
-        {
-            case 'dad':
+		switch(character) {
+			case 'dad':
+                if(!dadMap.exists(newCharacter)) {
+                    var newChar:Character = new Character(0, 0, newCharacter, char.isPlayer);
+                    newChar.x += newChar.positionArray[0];
+                    newChar.y += newChar.positionArray[1];
+                    groups.get()).add(newChar);
+                    newChar.alpha = 0.00001;
+                }
                 char = dad;
-            case 'gf':
+			case 'gf':
+				characterMap = gfMap;
                 char = gf;
-        }
-        var i:Int =  groups.get(character).members.length-1;
-		while(i >= 0) {
-			var memb:FlxSprite = groups.get(character).members[i];
-			if(memb != null) {
-				memb.kill();
-				groups.get(character).remove(memb);
-				memb.destroy();
-			}
-			--i;
 		}
-        groups.get(character).clear();
-        char = new Character(0, 0, newCharacter, char.isPlayer);
-        groups.get(character).add(char);
-        startCharacterPos(char);
-    }
+
+
+        
+        var lastAlpha:Float = char.alpha;
+        char.alpha = 0.00001;
+        char = characterMap.get(newCharacter);
+        char.alpha = lastAlpha;
+    }*/
 
     function updatePresence() {
-		#if desktop
+        #if private
+        #if desktop
+		// Updating Discord Rich Presence
+		DiscordClient.changePresence("Stage Data Editor", "Stage: Unknown");
+		#end      
+        #else
+        #if desktop
 		// Updating Discord Rich Presence
 		DiscordClient.changePresence("Stage Data Editor", "Stage: " + daStage);
-		#end        
+		#end      
+        #end
+  
     }
 
     function loadStage() {
@@ -534,7 +541,6 @@ class StageDataEditorState extends MusicBeatState {
 		}
 
         stage = new Stage(daStage);
-        stage.debugMode = true;
         stageGroup.add(stage);
         gfLayersGroup.add(stage.layers.get("gf"));
 		dadLayersGroup.add(stage.layers.get("dad"));
@@ -577,17 +583,10 @@ class StageDataEditorState extends MusicBeatState {
             positions.get('gf').x = stageData.girlfriend[0];
             positions.get('gf').y = stageData.girlfriend[1];
 
-            boyfriend.x = stageData.boyfriend[0];
-            boyfriend.y = stageData.boyfriend[1];
-            startCharacterPos(boyfriend);
-            
-            dad.x = stageData.opponent[0];
-            dad.y = stageData.opponent[1];
-            startCharacterPos(dad);
+            groups.get('boyfriend').setPosition(positions.get('boyfriend').x, positions.get('boyfriend').y);
+            groups.get('dad').setPosition(positions.get('dad').x, positions.get('dad').y);
+            groups.get('gf').setPosition(positions.get('gf').x, positions.get('gf').y);
 
-            gf.x = stageData.girlfriend[0];
-            gf.y = stageData.girlfriend[1];
-            startCharacterPos(gf);
             genBoyPos();
 			updatePresence();
             updatePointerPos();
@@ -602,16 +601,14 @@ class StageDataEditorState extends MusicBeatState {
             }
             else if(sender == positionXStepper)
             {
-                curChar.x = sender.value;
-                curChar.x += curChar.positionArray[0];
+                curGroup.x = sender.value;
                 curCharPosition.x = sender.value;
                 updatePointerPos();
                 genBoyPos();
             }
             else if(sender == positionYStepper)
             {
-                curChar.y = sender.value;
-                curChar.y += curChar.positionArray[1];
+                curGroup.y = sender.value;
                 curCharPosition.y = sender.value;
                 updatePointerPos();
                 genBoyPos();
@@ -639,12 +636,14 @@ class StageDataEditorState extends MusicBeatState {
             curChar = curChars[0];
             curCharPosition = charsPosition[0];
             curCameraPosition = cameraPositions[0];
+            curGroup = curGroups[0];
             curCharIndex = 0;
         }
         else
             curChar = curChars[curCharIndex];
             curCharPosition = charsPosition[curCharIndex];
             curCameraPosition = cameraPositions[curCharIndex];
+            curGroup = curGroups[curCharIndex];
     }
 
     function updatePointerPos() {
@@ -703,11 +702,11 @@ class StageDataEditorState extends MusicBeatState {
             switch(i)
             {
                 case 0: dumbTexts.members[i].text = 'Boyfriend Positions:';
-                case 1: dumbTexts.members[i].text = '[' + boyfriend.x + ', ' + boyfriend.y + ']';
+                case 1: dumbTexts.members[i].text = '[' + groups.get("boyfriend").x + ', ' + groups.get("boyfriend").y + ']';
                 case 2: dumbTexts.members[i].text = 'GirlFriend Positions:';
-                case 3: dumbTexts.members[i].text = '[' + gf.x + ', ' + gf.y + ']';
+                case 3: dumbTexts.members[i].text = '[' + groups.get("gf").x + ', ' + groups.get("gf").y + ']';
                 case 4: dumbTexts.members[i].text = 'Opponent Positions:';
-                case 5: dumbTexts.members[i].text = '[' + dad.x + ', ' + dad.y + ']';
+                case 5: dumbTexts.members[i].text = '[' + groups.get("dad").x + ', ' + groups.get("dad").y + ']';
                 case 6: dumbTexts.members[i].text = 'Boyfriend Camera Positions:';
                 case 7: dumbTexts.members[i].text = '[' + camera_position.get("boyfriend").x  + ', ' +  camera_position.get("boyfriend").y  + ']';
                 case 8: dumbTexts.members[i].text = 'Girlfriend Camera Positions:';
@@ -784,19 +783,7 @@ class StageDataEditorState extends MusicBeatState {
 				}
 			}
 		}
-
-        if(curChar == boyfriend || curChar == gf || curChar == dad)
-        {
-            colorSine += elapsed;
-            var colorVal:Float = 0.7 + Math.sin(Math.PI * colorSine) * 0.3;
-            curChar.color = FlxColor.fromRGBFloat(colorVal, colorVal, colorVal, 0.999);
-        }
-        else
-        {
-            curChar.color = FlxColor.WHITE;//dumb is ever
-        }
-        //Alpha can't be 100% or the color won't be updated for some reason, guess i will die       
-
+               
         if (!blockInput) {
             FlxG.sound.muteKeys = TitleState.muteKeys;
             FlxG.sound.volumeDownKeys = TitleState.volumeDownKeys;
@@ -812,7 +799,6 @@ class StageDataEditorState extends MusicBeatState {
                     FlxG.sound.playMusic(Paths.music('freakyMenu'));
                 }
                 autoSaveStage();
-                pauseMusic.destroy();
                 FlxG.mouse.visible = false;
                 return;
             }
@@ -870,12 +856,10 @@ class StageDataEditorState extends MusicBeatState {
                     var postions:Array<Float> = [curCharPosition.x, curCharPosition.y];
                     postions[arrayVal] += negaMult * multiplier;
 
-                    curChar.x = postions[0];
-                    curChar.x += curChar.positionArray[0];
+                    curGroup.x = postions[0];
                     curCharPosition.x = postions[0];
 
-                    curChar.y = postions[1];
-                    curChar.y += curChar.positionArray[1];
+                    curGroup.y = postions[1];
                     curCharPosition.y = postions[1];
                     
 

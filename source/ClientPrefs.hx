@@ -37,6 +37,7 @@ class ClientPrefs {
 	public static var countdown:Bool = true;
 	public static var checkForUpdates:Bool = true;
 	public static var inputType:String = 'Psych';
+	public static var uiType:String = 'Psych';
 	public static var showMs:Bool = false;
 	public static var hiddenGF:Bool = false;
 	public static var comboStacking:Bool = true;
@@ -114,6 +115,7 @@ class ClientPrefs {
 		FlxG.save.data.checkForUpdates = checkForUpdates;
 		FlxG.save.data.shaders = shaders;
 		FlxG.save.data.showMs = showMs;
+		FlxG.save.data.uiType = uiType;
 		//FlxG.save.data.cursing = cursing;
 		//FlxG.save.data.violence = violence;
 		FlxG.save.data.camZooms = camZooms;
@@ -165,6 +167,9 @@ class ClientPrefs {
 		}
 		if(FlxG.save.data.showMs != null) {
 			showMs = FlxG.save.data.showMs;
+		}
+		if(FlxG.save.data.uiType != null) {
+			uiType = FlxG.save.data.uiType;
 		}
 		if(FlxG.save.data.showFPS != null) {
 			showFPS = FlxG.save.data.showFPS;

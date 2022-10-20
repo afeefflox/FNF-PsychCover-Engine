@@ -107,7 +107,7 @@ class Note extends FlxSprite
 	{
 		if(isSustainNote && !animation.curAnim.name.endsWith('end'))
 		{
-			scale.y *= ratio;
+			scale.y = scale.y * ratio;
 			updateHitbox();
 		}
 	}
@@ -237,21 +237,21 @@ class Note extends FlxSprite
 				}
 
 				if(style == 'pixel') {
-					prevNote.scale.y *= 1.19;
-					prevNote.scale.y *= (6 / height); //Auto adjust note size
+					prevNote.scale.y = prevNote.scale.y * 1.19;
+					prevNote.scale.y = prevNote.scale.y * 6; //Auto adjust note size
 				}
 				prevNote.updateHitbox();
 				// prevNote.setGraphicSize();
 			}
 
 			if(style == 'pixel')  {
-				scale.y *= PlayState.daPixelZoom;
+				scale.y = scale.y * PlayState.daPixelZoom;
 				updateHitbox();
 			}
 		} else if(!isSustainNote) {
 			earlyHitMult = 1;
 		}
-		x += offsetX;
+		x = x + offsetX;
 	}
 
 	var lastNoteOffsetXForPixelAutoAdjusting:Float = 0;
@@ -385,6 +385,26 @@ class Note extends FlxSprite
 		{
 			if (alpha > 0.3)
 				alpha = 0.3;
+		}
+
+		/**
+			ReSize NOTE SUSTAIN / LONG NOTES !!
+		**/
+		if(isSustainNote)
+		{
+			scale.y = 1;
+			if(!animation.curAnim.name.endsWith('end'))
+			{
+				scale.y = scale.y * Conductor.stepCrochet / 100 * 1.05;
+				scale.y = scale.y * PlayState.instance.songSpeed;
+			}
+
+			if(style == 'pixel')
+			{
+				scale.y = scale.y * 1.19;
+				scale.y = scale.y * 6;
+			}
+			updateHitbox();			
 		}
 	}
 }

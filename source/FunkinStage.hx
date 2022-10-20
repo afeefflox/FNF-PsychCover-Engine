@@ -95,115 +95,6 @@ class FunkinStage {
 		scriptName = script;
 		initHaxeModule();
 		trace('lua file loaded succesfully:' + script);
-
-		if(!Stage.instance.debugMode)
-		{
-			set('Function_StopLua', Function_StopLua);
-			set('Function_Stop', Function_Stop);
-			set('Function_Continue', Function_Continue);
-			set('luaDebugMode', false);
-			set('luaDeprecatedWarnings', true);
-			set('inChartEditor', false);
-	
-			set('curBpm', Conductor.bpm);
-			set('bpm', PlayState.SONG.bpm);
-			set('scrollSpeed', PlayState.SONG.speed);
-			set('crochet', Conductor.crochet);
-			set('stepCrochet', Conductor.stepCrochet);
-			set('songLength', FlxG.sound.music.length);
-			set('songName', PlayState.SONG.song);
-			set('songPath', Paths.formatToSongPath(PlayState.SONG.song));
-			set('startedCountdown', false);
-	
-			set('isStoryMode', PlayState.isStoryMode);
-			set('difficulty', PlayState.storyDifficulty);
-			set('difficultyName', CoolUtil.difficulties[PlayState.storyDifficulty]);
-			set('weekRaw', PlayState.storyWeek);
-			set('week', WeekData.weeksList[PlayState.storyWeek]);
-			set('seenCutscene', PlayState.seenCutscene);
-	
-			set('cameraX', 0);
-			set('cameraY', 0);
-	
-			set('screenWidth', FlxG.width);
-			set('screenHeight', FlxG.height);
-	
-			set('curBeat', 0);
-			set('curStep', 0);
-			set('curDecBeat', 0);
-			set('curDecStep', 0);
-	
-			set('score', 0);
-			set('misses', 0);
-			set('hits', 0);
-	
-			set('rating', 0);
-			set('ratingName', '');
-			set('ratingFC', '');
-			set('version', MainMenuState.psychEngineVersion.trim());
-	
-			set('inGameOver', false);
-			set('mustHitSection', false);
-			set('altAnim', false);
-			set('gfSection', false);
-	
-			// Gameplay settings
-			set('healthGainMult', PlayState.instance.healthGain);
-			set('healthLossMult', PlayState.instance.healthLoss);
-			set('instakillOnMiss', PlayState.instance.instakillOnMiss);
-			set('botPlay', PlayState.instance.cpuControlled);
-			set('practice', PlayState.instance.practiceMode);
-	
-			for (i in 0...4) {
-				set('defaultPlayerStrumX' + i, 0);
-				set('defaultPlayerStrumY' + i, 0);
-				set('defaultOpponentStrumX' + i, 0);
-				set('defaultOpponentStrumY' + i, 0);
-			}
-	
-			// Default character positions woooo
-			set('defaultBoyfriendX', PlayState.instance.BF_X);
-			set('defaultBoyfriendY', PlayState.instance.BF_Y);
-			set('defaultOpponentX', PlayState.instance.DAD_X);
-			set('defaultOpponentY', PlayState.instance.DAD_Y);
-			set('defaultGirlfriendX', PlayState.instance.GF_X);
-			set('defaultGirlfriendY', PlayState.instance.GF_Y);
-	
-			// Character shit
-			set('boyfriendName', PlayState.SONG.player1);
-			set('dadName', PlayState.SONG.player2);
-			set('gfName', PlayState.SONG.gfVersion);
-	
-			// Some settings, no jokes
-			set('downscroll', ClientPrefs.downScroll);
-			set('middlescroll', ClientPrefs.middleScroll);
-			set('framerate', ClientPrefs.framerate);
-			set('ghostTapping', ClientPrefs.ghostTapping);
-			set('hideHud', ClientPrefs.hideHud);
-			set('timeBarType', ClientPrefs.timeBarType);
-			set('scoreZoom', ClientPrefs.scoreZoom);
-			set('cameraZoomOnBeat', ClientPrefs.camZooms);
-			set('flashingLights', ClientPrefs.flashing);
-			set('noteOffset', ClientPrefs.noteOffset);
-			set('healthBarAlpha', ClientPrefs.healthBarAlpha);
-			set('noResetButton', ClientPrefs.noReset);
-			set('lowQuality', ClientPrefs.lowQuality);
-			set('scriptName', scriptName);
-	
-			#if windows
-			set('buildTarget', 'windows');
-			#elseif linux
-			set('buildTarget', 'linux');
-			#elseif mac
-			set('buildTarget', 'mac');
-			#elseif html5
-			set('buildTarget', 'browser');
-			#elseif android
-			set('buildTarget', 'android');
-			#else
-			set('buildTarget', 'unknown');
-			#end
-		}
 		
 		// custom substate LET'S GOOOOO
 		Lua_helper.add_callback(lua, "openCustomSubstate", function(name:String, pauseGame:Bool = false) {
@@ -1763,7 +1654,6 @@ class FunkinStage {
 			var leGroup:ModchartGroup = new ModchartGroup(x, y);
 			PlayState.instance.startCharacterPos(leSprite, !isPlayer);
 			PlayState.instance.startCharacterLua(leSprite.curCharacter);
-			PlayState.instance.startCharacterHscript(leSprite.curCharacter);
 
 			PlayState.instance.modchartCharacters.set(tag, leSprite);
 			PlayState.instance.modchartGroups.set(tag + 'Group', leGroup);

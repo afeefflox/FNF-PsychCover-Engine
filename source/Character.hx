@@ -18,6 +18,8 @@ import openfl.utils.AssetType;
 import openfl.utils.Assets;
 import haxe.Json;
 import haxe.format.JsonParser;
+import data.DataType;
+import FunkinHaxe;
 
 
 using StringTools;
@@ -41,6 +43,8 @@ typedef CharacterFile = {
 	var no_antialiasing:Bool;
 	var healthbar_colors:Array<Int>;
 	var isPlayerChar:Bool;
+
+	@:optional var spriteType:String;
 }
 
 typedef AnimArray = {
@@ -55,8 +59,8 @@ typedef AnimArray = {
 
 class Character extends FlxSprite
 {
-	public var animOffsets:Map<String, Array<Dynamic>>;
-	public var animOffsetsPlayer:Map<String, Array<Dynamic>>;
+	public var animOffsets:Map<String, Array<Dynamic>> = new Map<String, Array<Dynamic>>();
+	public var animOffsetsPlayer:Map<String, Array<Dynamic>> = new Map<String, Array<Dynamic>>();
 	public var debugMode:Bool = false;
 
 	public var isPlayer(default, set):Bool = false;
@@ -98,7 +102,9 @@ class Character extends FlxSprite
 	public var noAntialiasing:Bool = false;
 	public var originalFlipX:Bool = false;
 	public var healthColorArray:Array<Int> = [255, 0, 0];
-
+	public static var characterScript:FunkinHaxe;
+	public var spriteType:DataType;
+	public var spriteTypeAlt:String = 'sparrow';
 	public static var DEFAULT_CHARACTER:String = 'bf'; //In case a character is missing, it will use BF on its place
 	function set_isPlayer(value:Bool):Bool
 	{
@@ -108,9 +114,6 @@ class Character extends FlxSprite
 	public function new(x:Float, y:Float, ?character:String = 'bf', ?isPlayer:Bool = false)
 	{
 		super(x, y);
-
-		animOffsets = new Map<String, Array<Dynamic>>();
-		animOffsetsPlayer = new Map<String, Array<Dynamic>>();
 		curCharacter = character;
 		this.isPlayer = isPlayer;
 		antialiasing = ClientPrefs.globalAntialiasing;
@@ -144,53 +147,66 @@ class Character extends FlxSprite
 				#end
 
 				var json:CharacterFile = cast Json.parse(rawJson);
-				var spriteType = "sparrow";
-				//sparrow
-				//packer
-				//texture
-				#if MODS_ALLOWED
-				var modTxtToFind:String = Paths.modsTxt(json.image);
-				var txtToFind:String = Paths.getPath('images/' + json.image + '.txt', TEXT);
-				
-				//var modTextureToFind:String = Paths.modFolders("images/"+json.image);
-				//var textureToFind:String = Paths.getPath('images/' + json.image, new AssetType();
-				
-				if (FileSystem.exists(modTxtToFind) || FileSystem.exists(txtToFind) || Assets.exists(txtToFind))
-				#else
-				if (Assets.exists(Paths.getPath('images/' + json.image + '.txt', TEXT)))
-				#end
-				{
-					spriteType = "packer";
-				}
-				
-				#if MODS_ALLOWED
-				var modAnimToFind:String = Paths.modFolders('images/' + json.image + '/Animation.json');
-				var animToFind:String = Paths.getPath('images/' + json.image + '/Animation.json', TEXT);
-				
-				//var modTextureToFind:String = Paths.modFolders("images/"+json.image);
-				//var textureToFind:String = Paths.getPath('images/' + json.image, new AssetType();
-				
-				if (FileSystem.exists(modAnimToFind) || FileSystem.exists(animToFind) || Assets.exists(animToFind))
-				#else
-				if (Assets.exists(Paths.getPath('images/' + json.image + '/Animation.json', TEXT)))
-				#end
-				{
-					spriteType = "texture";
-				}
-
-				switch (spriteType){
-					
-					case "packer":
-						frames = Paths.getPackerAtlas(json.image);
-					
-					case "sparrow":
-						frames = Paths.getSparrowAtlas(json.image);
-					
-					case "texture":
-						frames = AtlasFrameMaker.construct(json.image);
-				}
 				imageFile = json.image;
 
+				if (json.spriteType != null)
+					spriteType = DataType.createByName(json.spriteType);
+				else
+				{
+					#if MODS_ALLOWED
+					var modTxtToFind:String = Paths.modsTxt(json.image);
+					var txtToFind:String = Paths.getPath('images/' + json.image + '.txt', TEXT);
+					if (FileSystem.exists(modTxtToFind) || FileSystem.exists(txtToFind) || Assets.exists(txtToFind))
+					#else
+					if (Assets.exists(Paths.getPath('images/' + json.image + '.txt', TEXT)))
+					#end
+					{
+						spriteType = PACKER;
+						spriteTypeAlt = 'packer';
+					}
+
+					#if MODS_ALLOWED
+					var modXmlToFind:String = Paths.modsXml(json.image);
+					var xmlToFind:String = Paths.getPath('images/' + json.image + '.xml', TEXT);
+					if (FileSystem.exists(modXmlToFind) || FileSystem.exists(xmlToFind) || Assets.exists(xmlToFind))
+					#else
+					if (Assets.exists(Paths.getPath('images/' + json.image + '.xml', TEXT)))
+					#end
+					{
+						spriteType = SPARROW;
+						spriteTypeAlt = 'sparrow';
+					}
+
+					#if MODS_ALLOWED
+					var modJsonToFind:String = Paths.modsJson2(json.image);
+					var jsonToFind:String = Paths.getPath('images/' + json.image + '.json', TEXT);
+					if (FileSystem.exists(modJsonToFind) || FileSystem.exists(jsonToFind) || Assets.exists(jsonToFind))
+					#else
+					if (Assets.exists(Paths.getPath('images/' + json.image + '.json', TEXT)))
+					#end
+					{
+						spriteType = JSON;
+						spriteTypeAlt = 'json';
+					}
+					
+					#if MODS_ALLOWED
+					var modAnimToFind:String = Paths.modFolders('images/' + json.image + '/Animation.json');
+					var animToFind:String = Paths.getPath('images/' + json.image + '/Animation.json', TEXT);
+					if (FileSystem.exists(modAnimToFind) || FileSystem.exists(animToFind) || Assets.exists(animToFind))
+					#else
+					if (Assets.exists(Paths.getPath('images/' + json.image + '/Animation.json', TEXT)))
+					#end
+					{
+						spriteTypeAlt = 'texture';
+					}
+				}
+				
+				if (imageFile != null && spriteType != null && spriteTypeAlt != 'texture')
+					frames = Paths.getAtlasFromData(imageFile, spriteType);
+				else if(spriteTypeAlt == 'texture')
+					frames = AtlasFrameMaker.construct(imageFile);
+				
+				
 				if(json.scale != 1) {
 					jsonScale = json.scale;
 					setGraphicSize(Std.int(width * jsonScale));
@@ -255,12 +271,6 @@ class Character extends FlxSprite
 			loadMappedAnims();
 			playAnim("shoot1");
 		}
-
-		animation.finishCallback = function(name:String) {
-			if(animation.getByName(name + '-loop') != null)
-				playAnim(name + '-loop');
-		};
-
 		
 		if (isPlayer)
 		{
@@ -357,7 +367,7 @@ class Character extends FlxSprite
 		{
 			if(heyTimer > 0)
 			{
-				heyTimer -= elapsed;
+				heyTimer -= elapsed * PlayState.instance.playbackRate;
 				if(heyTimer <= 0)
 				{
 					if(specialAnim && animation.curAnim.name == 'hey' || animation.curAnim.name == 'cheer')
@@ -387,17 +397,15 @@ class Character extends FlxSprite
 				if(animation.curAnim.finished) playAnim(animation.curAnim.name, false, false, animation.curAnim.frames.length - 3);
 			}
 
+			if (animation.curAnim.name.startsWith('sing'))
+			{
+				holdTimer += elapsed;
+			}
+			else
+				holdTimer = 0;			
+
 			if (isPlayer)
 			{
-				if (animation.curAnim.name.startsWith('sing'))
-				{
-					holdTimer += elapsed;
-					//idk how this work Loop Point lol
-					animation.curAnim.loopPoint = 3-4-5-6-7;
-				}
-				else
-					holdTimer = 0;
-		
 				if (animation.curAnim.name.endsWith('miss') && animation.curAnim.finished && !debugMode)
 				{
 					if(danceIdle)
@@ -406,21 +414,11 @@ class Character extends FlxSprite
 						playAnim('idle' + idleSuffix, true, false, 10);
 				}				
 			}
-			else
-			{
-				if (animation.curAnim.name.startsWith('sing'))
-				{
-					holdTimer += elapsed;
-					//idk how this work Loop Point lol
-					animation.curAnim.loopPoint = 3-4-5-6-7;
-				}
 
-				if (holdTimer >= Conductor.stepCrochet * 0.0011 * singDuration)
-				{
-					dance();
-					holdTimer = 0;
-				}
-			}
+			animation.finishCallback = function(name:String) {
+				if(animation.getByName(name + '-loop') != null)
+					playAnim(name + '-loop');
+			};
 		}
 		super.update(elapsed);
 	}
@@ -454,6 +452,7 @@ class Character extends FlxSprite
 		specialAnim = false;
 		//idk this is sort of better
 		//if(animation.name == AnimName) 
+
 		animation.play(AnimName, Force, Reversed, Frame);
 
 		var daOffset = getOffset(AnimName);

@@ -1,5 +1,6 @@
 package;
 
+import data.DataType;
 import animateatlas.AtlasFrameMaker;
 import flixel.math.FlxPoint;
 import flixel.graphics.frames.FlxFrame.FlxFrameAngle;
@@ -21,8 +22,6 @@ import flixel.graphics.FlxGraphic;
 import openfl.display.BitmapData;
 import flxanimate.frames.FlxAnimateFrames;
 import haxe.Json;
-import animate.FlxAnimate;
-
 import flash.media.Sound;
 
 using StringTools;
@@ -195,6 +194,17 @@ class Paths
 		return getPath('$key.lua', TEXT, library);
 	}
 
+	inline static public function script(key:String, ?library:String)
+	{
+		#if MODS_ALLOWED
+		var file:String = modFolders(key);
+		if(FileSystem.exists(file)) {
+			return file;
+		}
+		#end
+		return getPath(key, TEXT, library);
+	}
+
 	static public function video(key:String)
 	{
 		#if MODS_ALLOWED
@@ -244,7 +254,7 @@ class Paths
 		return returnAsset;
 	}
 
-	static public function getTextFromFile(key:String, ?ignoreMods:Bool = false):String
+	static public function getTextFromFile(key:String, ?ignoreMods:Bool = false, ?library:String):String
 	{
 		#if sys
 		#if MODS_ALLOWED
@@ -252,9 +262,12 @@ class Paths
 			return File.getContent(modFolders(key));
 		#end
 
-		if (FileSystem.exists(getPreloadPath(key)))
+		
+		if (library != null)
+			return File.getContent(getLibraryPath(key, library));
+		else if (FileSystem.exists(getPreloadPath(key)))
 			return File.getContent(getPreloadPath(key));
-
+		
 		if (currentLevel != null)
 		{
 			var levelPath:String = '';
@@ -312,21 +325,6 @@ class Paths
 		#end
 	}
 
-	inline static public function getTextureAtlas(key:String, ?library:String):FlxAtlasFrames
-	{
-		#if MODS_ALLOWED
-		var imageLoaded:FlxGraphic = returnGraphic(key);
-		var jsonExists:Bool = false;
-		if(FileSystem.exists(modsJson2('$key/spritemap'))) {
-			jsonExists = true;
-		}
-	
-		return FlxAnimate.fromAnimate((imageLoaded != null ? imageLoaded : image('$key/spritemap', library)), (jsonExists ? File.getContent(modsJson2('$key/spritemap')) : file('images/$key/spritemap.json', library)));
-		#else
-		return FlxAnimate.fromAnimate(image('$key/spritemap', library), file('images/$key/spritemap.json', library));
-		#end
-	}
-
 	inline static public function getPackerAtlas(key:String, ?library:String)
 	{
 		#if MODS_ALLOWED
@@ -340,6 +338,42 @@ class Paths
 		#else
 		return FlxAtlasFrames.fromSpriteSheetPacker(image(key, library), file('images/$key.txt', library));
 		#end
+	}
+
+	/*Fuck I Stole it from Mickey Mouse mods they are know How to use it I'm Happy right not :)*/
+	inline static public function getXMLAtlas(key:String, ?library:String):FlxAtlasFrames
+	{
+		#if MODS_ALLOWED
+		var imageLoaded:FlxGraphic = returnGraphic(key);
+		var xmlExists:Bool = false;
+		if(FileSystem.exists(modsXml(key))) {
+			xmlExists = true;
+		}
+
+		return FlxAtlasFrames.fromTexturePackerXml((imageLoaded != null ? imageLoaded : image(key, library)), (xmlExists ? File.getContent(modsXml(key)) : file('images/$key.xml', library)));
+		#else
+		return FlxAtlasFrames.fromTexturePackerXml(image(key, library), file('images/$key.xml', library));
+		#end
+	}
+
+	inline static public function getTexturePackerAtlas(key:String, ?library:String):FlxAtlasFrames
+	{
+		#if MODS_ALLOWED
+		var imageLoaded:FlxGraphic = returnGraphic(key);
+		var jsonExists:Bool = false;
+		if(FileSystem.exists(modsJson2(key))) {
+			jsonExists = true;
+		}
+	
+		return FlxAtlasFrames.fromTexturePackerJson((imageLoaded != null ? imageLoaded : image(key, library)), (jsonExists ? File.getContent(modsJson2(key)) : file('images/$key.json', library)));
+		#else
+		return FlxAtlasFrames.fromTexturePackerJson(image(key, library), file('images/$key.json', library));
+		#end
+	}
+
+	inline static public function getTextureAtlas(key:String, ?library:String)
+	{
+		return AtlasFrameMaker.construct(key, library);
 	}
 
 	inline static public function formatToSongPath(path:String) {
@@ -413,6 +447,21 @@ class Paths
 		return currentTrackedSounds.get(gottenPath);
 	}
 
+	inline static public function getAtlasFromData(key:String, data:DataType)
+	{
+		switch (data)
+		{
+			case SPARROW:
+				return getSparrowAtlas(key);
+			case GENERICXML:
+				return getXMLAtlas(key);
+			case PACKER:
+				return getPackerAtlas(key);
+			case JSON:
+				return getTexturePackerAtlas(key);
+		}
+	}
+
 	#if MODS_ALLOWED
 	inline static public function mods(key:String = '') {
 		return 'mods/' + key;
@@ -449,20 +498,6 @@ class Paths
 	inline static public function modsTxt(key:String) {
 		return modFolders('images/' + key + '.txt');
 	}
-
-	/* Goes unused for now
-
-	inline static public function modsShaderFragment(key:String, ?library:String)
-	{
-		return modFolders('shaders/'+key+'.frag');
-	}
-	inline static public function modsShaderVertex(key:String, ?library:String)
-	{
-		return modFolders('shaders/'+key+'.vert');
-	}
-	inline static public function modsAchievements(key:String) {
-		return modFolders('achievements/' + key + '.json');
-	}*/
 
 	static public function modFolders(key:String) {
 		if(currentModDirectory != null && currentModDirectory.length > 0) {

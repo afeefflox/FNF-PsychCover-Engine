@@ -3,6 +3,10 @@ package;
 import flixel.graphics.FlxGraphic;
 import flixel.FlxSprite;
 import openfl.utils.Assets as OpenFlAssets;
+#if sys
+import sys.FileSystem;
+import sys.io.File;
+#end
 
 using StringTools;
 
@@ -14,6 +18,7 @@ class HealthIcon extends FlxSprite
 	private var isWinner:Bool = false;
 	private var isEmotionStuff:Bool = false;
 	public var char:String = '';
+	public var iconScript:FunkinHaxe;
 
 	public function new(char:String = 'bf', isPlayer:Bool = false)
 	{
@@ -38,12 +43,12 @@ class HealthIcon extends FlxSprite
 	}
 
 	private var iconOffsets:Array<Float> = [0, 0];
-	public function changeIcon(char:String) {
+	public function changeIcon(char:String):Void {
 		if(this.char != char) {
 			var name:String = 'icons/' + char;
 			if(!Paths.fileExists('images/' + name + '.png', IMAGE)) name = 'icons/icon-' + char; //Older versions of psych engine's support
 			if(!Paths.fileExists('images/' + name + '.png', IMAGE)) name = 'icons/icon-face'; //Prevents crash from missing icon
-			var file:FlxGraphic = Paths.image(name);
+			var file:Dynamic = Paths.image(name);
 
 			loadGraphic(file); //Load stupidly first for getting the file size
 			if(file.width == 450)
@@ -53,10 +58,11 @@ class HealthIcon extends FlxSprite
 				iconOffsets[1] = (width - 150) / 2;
 				iconOffsets[2] = (width - 150) / 2;
 				updateHitbox();
-	
+		
 				animation.add(char, [0, 1, 2], 0, false, isPlayer);
 				isWinner = true;
 				isEmotionStuff = false;
+				animation.play(char);
 			}
 			else if(file.width == 750)
 			{
@@ -70,6 +76,7 @@ class HealthIcon extends FlxSprite
 				animation.add(char, [0, 1, 2, 3, 4], 0, false, isPlayer);
 				isWinner = false;
 				isEmotionStuff = true;
+				animation.play(char);
 			}
 			else
 			{
@@ -77,15 +84,30 @@ class HealthIcon extends FlxSprite
 				iconOffsets[0] = (width - 150) / 2;
 				iconOffsets[1] = (width - 150) / 2;
 				updateHitbox();
-	
+		
 				animation.add(char, [0, 1], 0, false, isPlayer);
 				isWinner = false;
 				isEmotionStuff = false;
+				animation.play(char);
 			}
 
-			animation.play(char);
-			this.char = char;
+			var luaFile:String = 'images/' + name + '.hx';
+			var doPush:Bool = false;
+			if(Paths.fileExists(luaFile, TEXT))
+			{
+				doPush = true;
+			}
+			if(doPush)			
+			{
+				iconScript = new FunkinHaxe(Paths.script(luaFile));
+				iconScript.set('icon', this);
+				iconScript.set('isPlayer', isPlayer);
+				iconScript.set('iconOffsets', iconOffsets);
+				iconScript.set('char', char);
+				iconScript.call('changeIcon', [char]);
+			}
 
+			this.char = char;
 			antialiasing = ClientPrefs.globalAntialiasing;
 			if(char.endsWith('-pixel')) {
 				antialiasing = false;
@@ -98,6 +120,10 @@ class HealthIcon extends FlxSprite
 		super.updateHitbox();
 		offset.x = iconOffsets[0];
 		offset.y = iconOffsets[1];
+		if(iconScript != null)
+		{
+			iconScript.call('updateHitbox');
+		}
 	}
 
 	public function getCharacter():String {
@@ -105,7 +131,11 @@ class HealthIcon extends FlxSprite
 	}
 
 	public function updateAnims(health:Float) {
-		if(isWinner)
+		if(iconScript != null)
+		{
+			iconScript.call('updateAnims', [health]);
+		}
+		else if(isWinner)
 		{
 			if (health < 20)
 				animation.curAnim.curFrame = 1;
@@ -134,6 +164,5 @@ class HealthIcon extends FlxSprite
 			else
 				animation.curAnim.curFrame = 0;
 		}
-
 	}
 }

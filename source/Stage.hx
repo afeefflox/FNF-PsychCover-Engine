@@ -37,6 +37,9 @@ import BackgroundGirls;
 import BackgroundDancer;
 import WiggleEffect;
 import FunkinStage;
+import FunkinLua;
+import FunkinHaxe;
+import MusicBeatState;
 using StringTools;
 
 class Stage extends FlxTypedGroup<FlxBasic>
@@ -44,9 +47,7 @@ class Stage extends FlxTypedGroup<FlxBasic>
     public var curStage:String = DEFAULT_STAGE;
     public var defaultCamZoom:Float = 1.05;
     public static var DEFAULT_STAGE:String = 'stage'; //In case a stage is missing, it will use Stage on its place
-	public var debugMode:Bool = false;
 	public static var instance:Stage;
-	public var luaArray:Array<FunkinStage> = [];
     public var foreground:FlxTypedGroup<FlxBasic> = new FlxTypedGroup<FlxBasic>(); // stuff layered above every other layer
 	public var swagBacks:Map<String,Dynamic> = []; // Store BGs here to use them later (for example with slowBacks, using your custom stage event or to adjust position in stage debug menu(press 8 while in PlayState with debug build of the game))
 	public var swagGroup:Map<String, FlxTypedGroup<Dynamic>> = []; // Store Groups
@@ -103,6 +104,11 @@ class Stage extends FlxTypedGroup<FlxBasic>
 	public var foregroundSprites:FlxTypedGroup<BGSprite>;
 
 	//Lua
+	public var luaArray:Array<FunkinLua> = [];
+	public var haxeArray:Array<FunkinHaxe> = [];
+	public var doPushHaxe:Bool = false;
+	public var stageScript:FunkinHaxe;
+
     public function new(?stage:String = 'stage')
     {
         super();
@@ -112,28 +118,12 @@ class Stage extends FlxTypedGroup<FlxBasic>
         switch(curStage)
         {
 			default:
-				#if (MODS_ALLOWED && LUA_ALLOWED)
-				var doPush:Bool = false;
-				var luaFile:String = 'stages/' + curStage + '.lua';
-				if(FileSystem.exists(Paths.modFolders(luaFile))) {
-					luaFile = Paths.modFolders(luaFile);
-					doPush = true;
-				} else {
-					luaFile = Paths.getPreloadPath(luaFile);
-					if(FileSystem.exists(luaFile)) {
-						doPush = true;
-					}
-				}
-		
-				if(doPush)
-					luaArray.push(new FunkinStage(luaFile));
-				#end
+				startStageLua(curStage);
+				startStageHaxe(curStage);
 
-				if (luaArray.length > 0)
-				{
-					callOnLuas('onCreate', []);
-					callOnLuas('onCreatePost', []);
-				}
+				callOnHaxes('onCreatePost', []);
+				callOnLuas('onCreatePost', []);
+
 			case 'stage':
 				var bg:BGSprite = new BGSprite('stageback', -600, -200, 0.9, 0.9);
 				add(bg);
@@ -228,7 +218,7 @@ class Stage extends FlxTypedGroup<FlxBasic>
 
 					for (i in 0...5)
 					{
-						var dancer:BackgroundDancer = new BackgroundDancer((370 * i) + 130, bgLimo.y - 400, 'limo/limoDancer', 'week4');
+						var dancer:BackgroundDancer = new BackgroundDancer((370 * i) + 170, bgLimo.y - 400, 'limo/limoDancer', 'week4');
 						dancer.scrollFactor.set(0.4, 0.4);
 						grpLimoDancers.add(dancer);
 					}
@@ -617,15 +607,27 @@ class Stage extends FlxTypedGroup<FlxBasic>
 		tankGround.y = 1300 + 1100 * Math.sin(Math.PI / 180 * (1 * tankAngle + 180));
 	}
 
+	override function destroy() {
+		for (script in haxeArray) 
+		{
+			script.call('destroy');
+			script.stop();
+		}
+		for (script in luaArray) {
+			script.call('onDestroy', []);
+			script.stop();
+		}
+		luaArray = [];
+		super.destroy();
+	}
+
     override function update(elapsed:Float)
     {
-        super.update(elapsed);
-		if(luaArray.length > 0)
-		{
-			callOnLuas('onUpdate', [elapsed]);
-			callOnLuas('onUpdatePost', [elapsed]);
-		}
+		callOnHaxes('update', [elapsed]);
+		callOnHaxes('updatePost', [elapsed]);
 
+		callOnLuas('onUpdate', [elapsed]);
+		callOnLuas('onUpdatePost', [elapsed]);
         switch(curStage)
         {
 			case 'philly':
@@ -675,7 +677,7 @@ class Stage extends FlxTypedGroup<FlxBasic>
 
 							var dancers:Array<BackgroundDancer> = grpLimoDancers.members;
 							for (i in 0...dancers.length) {
-								if(dancers[i].x < FlxG.width * 1.5 && limoLight.x > (370 * i) + 130) {
+								if(dancers[i].x < FlxG.width * 1.5 && limoLight.x > (370 * i) + 170) {
 									switch(i) {
 										case 0 | 3:
 											if(i == 0) FlxG.sound.play(Paths.sound('dancerdeath'), 0.5);
@@ -756,24 +758,16 @@ class Stage extends FlxTypedGroup<FlxBasic>
 			case 'tank':
 				moveTank(elapsed);		
         }
-
+		super.update(elapsed);
     }
 
-	override function destroy() {
-		if(luaArray.length > 0)
-		{
-			for (script in luaArray) {
-				script.call('onDestroy', []);
-				script.stop();
-			}
-			luaArray = [];
-		}
-		if(FunkinStage.hscript != null) FunkinStage.hscript = null;
-		super.destroy();
-	}
-
+	var lastBeatHit:Int = -1;
     public function beatHit(curBeat:Int)
     {
+		if(lastBeatHit >= curBeat) {
+			return;
+		}
+
         switch(curStage)
         {
 			case 'mall':
@@ -812,13 +806,119 @@ class Stage extends FlxTypedGroup<FlxBasic>
 					spr.dance();
 				});
         }
+		lastBeatHit = curBeat;
 
-		if(luaArray.length > 0)
-		{
-			setOnLuas('curBeat', curBeat); //DAWGG?????
-			callOnLuas('onBeatHit', []);
-		}
+		setOnLuas('curBeat', curBeat);
+		setOnHaxes('curBeat', curBeat);
+
+		callOnLuas('onBeatHit', []);
+		callOnHaxes('beatHit', []);
     }
+
+	
+	var lastStepHit:Int = -1;
+	public function stepHit(curStep:Int)
+	{
+		if(curStep == lastStepHit) {
+			return;
+		}
+
+		lastStepHit = curStep;
+
+		setOnLuas('curStep', curStep);
+		setOnHaxes('curStep', curStep);
+
+		callOnLuas('onStepHit', []);
+		callOnHaxes('stepHit', []);
+	}
+
+	public function startStageLua(name:String)
+	{
+		#if LUA_ALLOWED
+		var doPush:Bool = false;
+		var luaFile:String = 'stages/' + name + '.lua';
+		#if MODS_ALLOWED
+		if(FileSystem.exists(Paths.modFolders(luaFile))) {
+			luaFile = Paths.modFolders(luaFile);
+			doPush = true;
+		} else {
+			luaFile = Paths.getPreloadPath(luaFile);
+			if(FileSystem.exists(luaFile)) {
+				doPush = true;
+			}
+		}
+		#else
+		luaFile = Paths.getPreloadPath(luaFile);
+		if(Assets.exists(luaFile)) {
+			doPush = true;
+		}
+		#end
+
+		if(doPush)
+		{
+			for (script in luaArray)
+			{
+				if(script.scriptName == luaFile) return;
+			}
+			luaArray.push(new FunkinLua(luaFile, true));
+		}
+		#end		
+	}
+
+	
+	public function startStageHaxe(name:String)
+	{
+		var doPush:Bool = false;
+		var luaFile:String = 'stages/' + name + '.hx';
+		#if MODS_ALLOWED
+		if(FileSystem.exists(Paths.modFolders(luaFile))) {
+			luaFile = Paths.modFolders(luaFile);
+			doPush = true;
+		} else {
+			luaFile = Paths.getPreloadPath(luaFile);
+			if(FileSystem.exists(luaFile)) {
+				doPush = true;
+			}
+		}
+		#else
+		luaFile = Paths.getPreloadPath(luaFile);
+		if(Assets.exists(luaFile)) {
+			doPush = true;
+		}
+		#end
+
+		if(doPush)
+		{
+			haxeArray.push(new FunkinHaxe(luaFile, true));
+		}
+	}
+
+	
+	public function callOnHaxes(event:String, args:Array<Dynamic>, ignoreStops=false, ?exclusions:Array<String>):Dynamic {
+		var returnVal:Dynamic = FunkinHaxe.Function_Continue;
+		#if hscript
+		if(exclusions == null) exclusions = [];
+		for (i in 0...haxeArray.length) {
+			if(exclusions.contains(haxeArray[i].scriptName)){
+				continue;
+			}
+
+			var ret:Dynamic = haxeArray[i].call(event, args);
+			if(ret == FunkinHaxe.Function_StopHscript) {
+				if(ignoreStops)
+					ret = FunkinHaxe.Function_Continue;
+				else
+					break;
+			}
+
+			if(ret != FunkinHaxe.Function_Continue) {
+				returnVal = ret;
+			}
+		}
+		#end
+		//trace(event, returnVal);
+		return returnVal;
+	}
 
 	public function callOnLuas(event:String, args:Array<Dynamic>, ignoreStops=false, ?exclusions:Array<String>):Dynamic {
 		var returnVal:Dynamic = FunkinLua.Function_Continue;
@@ -842,7 +942,6 @@ class Stage extends FlxTypedGroup<FlxBasic>
 			}
 		}
 		#end
-		//trace(event, returnVal);
 		return returnVal;
 	}
 
@@ -850,6 +949,14 @@ class Stage extends FlxTypedGroup<FlxBasic>
 		#if LUA_ALLOWED
 		for (i in 0...luaArray.length) {
 			luaArray[i].set(variable, arg);
+		}
+		#end
+	}
+
+	public function setOnHaxes(variable:String, arg:Dynamic) {
+		#if hscript
+		for (i in 0...haxeArray.length) {
+			haxeArray[i].set(variable, arg);
 		}
 		#end
 	}

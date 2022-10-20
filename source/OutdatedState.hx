@@ -16,6 +16,7 @@ class OutdatedState extends MusicBeatState
 	public static var leftState:Bool = false;
 
 	var warnText:FlxText;
+	
 	override function create()
 	{
 		super.create();

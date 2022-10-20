@@ -6,6 +6,8 @@ import lime.utils.Assets as LimeAssets;
 import lime.utils.AssetLibrary;
 import lime.utils.AssetManifest;
 import flixel.system.FlxSound;
+import data.DataType;
+
 #if sys
 import sys.io.File;
 import sys.FileSystem;
@@ -74,6 +76,20 @@ class CoolUtil
 
 		return daList;
 	}
+
+	public static function getDataTypeStringArray():Array<String>
+	{
+		var enums:Array<DataType> = DataType.createAll();
+		var strs:Array<String> = [];
+
+		for (_enum in enums)
+		{
+			strs[enums.indexOf(_enum)] = Std.string(_enum);
+		}
+
+		return strs;
+	}
+
 	public static function listFromString(string:String):Array<String>
 	{
 		var daList:Array<String> = [];
@@ -137,5 +153,9 @@ class CoolUtil
 		#else
 		FlxG.openURL(site);
 		#end
+	}
+
+	public static function getLastOfArray<T>(a:Array<T>):T {
+		return a[a.length - 1];
 	}
 }

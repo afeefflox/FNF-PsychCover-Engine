@@ -15,7 +15,6 @@ typedef SwagSection =
 class Section
 {
 	public var sectionNotes:Array<Dynamic> = [];
-
 	public var sectionBeats:Float = 4;
 	public var gfSection:Bool = false;
 	public var typeOfSection:Int = 0;

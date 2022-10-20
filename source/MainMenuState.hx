@@ -26,8 +26,8 @@ using StringTools;
 
 class MainMenuState extends MusicBeatState
 {
-	public static var psychEngineVersion:String = '0.6.2'; //This is also used for Discord RPC
-	public static var psychCoverVersion:String = '0.4'; //This is also used for Discord RPC
+	public static var psychEngineVersion:String = '0.6.3'; //This is also used for Discord RPC
+	public static var psychCoverVersion:String = '0.4.2'; //This is also used for Discord RPC
 	public static var curSelected:Int = 0;
 
 	var menuItems:FlxTypedGroup<FlxSprite>;
@@ -105,44 +105,7 @@ class MainMenuState extends MusicBeatState
 		/*if(optionShit.length > 6) {
 			scale = 6 / optionShit.length;
 		}*/
-		if(ClientPrefs.betadciu) {
-			optionShit.remove('story_mode');
-			optionShit.remove('freeplay');
-			optionShit.remove('mods');
-			optionShit.remove('awards');
-			optionShit.remove('credits');
-			optionShit.remove('donate');
-			optionShit.remove('options');
-			
-			optionShit.push('story_mode');
-			optionShit.push('freeplay');
-			optionShit.push('betadciu');
-			optionShit.push('bonus_songs');
-			optionShit.push('mods');
-			optionShit.push('awards');
-			optionShit.push('credits');
-			optionShit.push('donate');
-			optionShit.push('options');
-		}
-		else {
-			optionShit.remove('betadciu');
-			optionShit.remove('bonus_songs');
-			optionShit.remove('story_mode');
-			optionShit.remove('freeplay');
-			optionShit.remove('mods');
-			optionShit.remove('awards');
-			optionShit.remove('credits');
-			optionShit.remove('donate');
-			optionShit.remove('options');
 
-			optionShit.push('story_mode');
-			optionShit.push('freeplay');
-			optionShit.push('mods');
-			optionShit.push('awards');
-			optionShit.push('credits');
-			optionShit.push('donate');
-			optionShit.push('options');
-		}
 		for (i in 0...optionShit.length)
 		{
 			var offset:Float = 108 - (Math.max(optionShit.length, 4) - 4) * 80;
@@ -278,11 +241,10 @@ class MainMenuState extends MusicBeatState
 									case 'story_mode':
 										MusicBeatState.switchState(new StoryMenuState());
 									case 'freeplay':
-										MusicBeatState.switchState(new FreeplayState());
-									case 'betadciu':
-										MusicBeatState.switchState(new BETADCIUState());
-									case 'bonus_songs':
-										MusicBeatState.switchState(new BonusState());
+										if(ClientPrefs.betadciu)
+											MusicBeatState.switchState(new FreeplayMenuState());
+										else
+											MusicBeatState.switchState(new FreeplayState());
 									#if MODS_ALLOWED
 									case 'mods':
 										MusicBeatState.switchState(new ModsMenuState());
@@ -292,7 +254,7 @@ class MainMenuState extends MusicBeatState
 									case 'credits':
 										MusicBeatState.switchState(new CreditsState());
 									case 'options':
-										LoadingState.loadAndSwitchState(new options.OptionsState());
+										LoadingState.loadAndSwitchState(new options.OptionsState(false));
 								}
 							});
 						}

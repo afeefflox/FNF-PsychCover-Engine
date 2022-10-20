@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="menu_bonus_songs.png">
+	<!-- Created with Adobe Animate version 21.0.9.42677 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="bonus_songs basic0000" x="0" y="0" width="877" height="128"/>
+	<SubTexture name="bonus_songs basic0001" x="0" y="0" width="877" height="128"/>
+	<SubTexture name="bonus_songs basic0002" x="0" y="0" width="877" height="128"/>
+	<SubTexture name="bonus_songs basic0003" x="877" y="0" width="877" height="128"/>
+	<SubTexture name="bonus_songs basic0004" x="877" y="0" width="877" height="128"/>
+	<SubTexture name="bonus_songs basic0005" x="877" y="0" width="877" height="128"/>
+	<SubTexture name="bonus_songs basic0006" x="0" y="128" width="877" height="128"/>
+	<SubTexture name="bonus_songs basic0007" x="0" y="128" width="877" height="128"/>
+	<SubTexture name="bonus_songs basic0008" x="0" y="128" width="877" height="128"/>
+	<SubTexture name="bonus_songs white0000" x="877" y="128" width="1097" height="160" frameX="-3" frameY="-2" frameWidth="1103" frameHeight="164"/>
+	<SubTexture name="bonus_songs white0001" x="0" y="288" width="1093" height="162" frameX="-10" frameY="0" frameWidth="1103" frameHeight="164"/>
+	<SubTexture name="bonus_songs white0002" x="0" y="450" width="1097" height="164" frameX="0" frameY="0" frameWidth="1103" frameHeight="164"/>
+</TextureAtlas>

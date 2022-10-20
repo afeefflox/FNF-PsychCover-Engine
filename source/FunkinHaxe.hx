@@ -1,191 +1,441 @@
 package;
-import hscript.Interp;
 
-import PlayState;  
-import Discord;
-import Character;
-import Boyfriend;
-import Song;
-import GameOverSubstate;
-import HealthIcon;
-import Section;
-import StrumNote;
-import ClientPrefs;
-import Note; 
-import NoteSplash;
-import BGSprite;
 
-import flixel.FlxBasic;
-import flixel.FlxCamera;
-import flixel.FlxG;
-import flixel.FlxGame;
-import flixel.FlxObject;
-import flixel.FlxSprite;
-import flixel.FlxState;
-import flixel.FlxSubState;
-import flixel.addons.display.FlxGridOverlay;
-import flixel.addons.effects.FlxTrail;
-import flixel.addons.effects.FlxTrailArea;
-import flixel.addons.effects.chainable.FlxEffectSprite;
-import flixel.addons.effects.chainable.FlxWaveEffect;
-import flixel.addons.transition.FlxTransitionableState;
-import flixel.graphics.atlas.FlxAtlas;
-import flixel.graphics.frames.FlxAtlasFrames;
-import flixel.group.FlxGroup.FlxTypedGroup;
-import flixel.math.FlxMath;
-import flixel.math.FlxPoint;
-import flixel.math.FlxRect;
-import flixel.system.FlxSound;
-import flixel.text.FlxText;
-import flixel.tweens.FlxEase;
-import flixel.tweens.FlxTween;
-import flixel.ui.FlxBar;
-import flixel.util.FlxCollision;
-import flixel.util.FlxColor;
-import flixel.util.FlxSort;
-import flixel.util.FlxStringUtil;
-import flixel.util.FlxTimer;
+import haxe.crypto.Md5;
+import haxe.Exception;
 import flixel.addons.display.FlxBackdrop;
-import lime.app.Application;
-#if sys
-import sys.io.File;
-import sys.FileSystem;
+import openfl.display.BlendMode;
+import flixel.tile.FlxTilemap;
+import animateatlas.AtlasFrameMaker;
+import haxe.EnumTools;
+import hscript.Expr;
+import openfl.utils.AssetLibrary;
+import openfl.utils.AssetManifest;
+import haxe.io.Path;
+import haxe.io.Bytes;
+#if desktop
+import cpp.Lib;
+import Discord.DiscordClient;
 #end
+import flixel.util.FlxSave;
+import lime.app.Application;
+import haxe.PosInfos;
+import openfl.geom.Point;
+import openfl.geom.Rectangle;
+import flixel.util.FlxAxes;
+import flixel.addons.text.FlxTypeText;
+import openfl.display.PNGEncoderOptions;
+import flixel.tweens.FlxEase;
+import haxe.Json;
+import flixel.util.FlxTimer;
+import flixel.group.FlxGroup.FlxTypedGroup;
+import flixel.graphics.frames.FlxAtlasFrames;
+import openfl.media.Sound;
+#if sys
+import sys.FileSystem;
+import sys.io.File;
+#end
+import haxe.display.JsonModuleTypes.JsonTypeParameters;
+import flixel.addons.effects.chainable.FlxShakeEffect;
+import flixel.FlxBasic;
+import flixel.text.FlxText;
+import flixel.FlxState;
+import flixel.system.FlxSound;
+import flixel.util.FlxColor;
+import lime.utils.Assets;
+import openfl.utils.Assets as DeezNutsAssets;
+import flixel.system.FlxAssets;
+import flixel.FlxSprite;
+import openfl.display.BitmapData;
+import flixel.FlxG;
+import flixel.math.FlxMath;
+import flixel.tweens.FlxTween;
+import flixel.input.keyboard.FlxKey;
+import FunkinLua;
+import Stage;
+
 #if hscript
 import hscript.Interp;
 import hscript.Parser;
 #end
-/**
- * STOLEN FROM FNF OS :(
- */
- using StringTools;
+
+#if VIDEOS_ALLOWED
+import vlc.MP4Handler;
+#end
+
+using StringTools;
 class FunkinHaxe 
 {
-  public var hscriptArray:Map<String, Interp> = [];
-  public var scriptName:String = '';
-  public static var Function_Stop:Dynamic = 1;
+    public var hscript:Interp;
+    public static var Function_Stop:Dynamic = 1;
 	public static var Function_Continue:Dynamic = 0;
 	public static var Function_StopHscript:Dynamic = 2;
-  public var interp:Interp = new Interp();
-  public var exparser:Parser = new Parser();
-  public function new(script:String) {
-    #if hscript
-    scriptName = script;
-    exparser.line = 1;
-    exparser.allowMetadata = true;
-    exparser.allowTypes = true;
-    var parsedstring = exparser.parseString(File.getContent(script));
-    interp = new Interp();
-    interp.errorHandler = function(e) {
-      var posInfo = interp.posInfos();
+    public var superVar = {};
+    public var scriptName:String = '';
+    public var isStage:Bool = false;
 
-      var lineNumber = Std.string(posInfo.lineNumber);
-      var methodName = posInfo.methodName;
-      var className = posInfo.className;
+    public function new(script:String, ?isStage:Bool = false) {
+        scriptName = script;
+        this.isStage = isStage;
+        hscript = new Interp();
+        hscript.errorHandler = function(e) {
+            if (!FlxG.keys.pressed.SHIFT) {
+                var posInfo = hscript.posInfos();
 
-      Application.current.window.alert('Exception occured at line $lineNumber ${methodName == null ? "" : 'in $methodName'}\n\n${e}\n\nIf the message boxes blocks the engine, hold down SHIFT to bypass.', 'HScript error! - ${scriptName}');
-  };
+                var lineNumber = Std.string(posInfo.lineNumber);
+                var methodName = posInfo.methodName;
+                var className = posInfo.className;
 
-    set('PlayState', PlayState);
-    set('Character', Character);
-    set('Stage', Stage);
-    set('Paths', Paths);
-    set('Boyfriend', Boyfriend);
-    set('HealthIcon', HealthIcon);
-    set('StrumNote', StrumNote);
-    set('Conductor', Conductor);
-    set('ClientPrefs', ClientPrefs);
-    set('BGSprite', BGSprite);
-    set('GameOverSubstate', GameOverSubstate);
-    set('Note', Note);
-    set('FlxG', FlxG);
-    set('Song', Song);
-    set('FlxGame', FlxGame);
-    set('FlxBackdrop', FlxBackdrop);
-    set('FlxBar', FlxBar);
-    set('Section', Section);
-    set('FlxState', FlxState);
-    set('NoteSplash', NoteSplash);
-    set('FlxSprite', FlxSprite);
-    set('FlxBasic', FlxBasic);
-    set('FlxTween', FlxTween);
-    set('FlxSort', FlxSort);
-    set('FlxTimer', FlxTimer);
-    set('FlxEase', FlxEase);
-    set('FlxText', FlxText);
-    set('FlxSound', FlxSound);
-    set('FlxText', FlxText);
-    set('FlxRect', FlxRect);
-    set('FlxPoint', FlxPoint);
-    set('FlxTrail', FlxTrail);
-    set('StringTools', StringTools);
-    set('Function_StopHscript', Function_StopHscript);
-		set('Function_Stop', Function_Stop);
-		set('Function_Continue', Function_Continue);
+                Application.current.window.alert('Exception occured at line $lineNumber ${methodName == null ? "" : 'in $methodName'}\n\n${e}\n\nIf the message boxes blocks the engine, hold down SHIFT to bypass.', 'HScript error! - ${scriptName}');
+            }
+        };
 
-    interp.variables.set('setVar', function(name:String, value:Dynamic)
-    {
-      PlayState.instance.variables.set(name, value);
-    });
-    interp.variables.set('getVar', function(name:String, value:Dynamic)
-    {
-      if(!PlayState.instance.variables.exists(name)) return null;
-      return PlayState.instance.variables.get(name);
-    });
-    interp.variables.set('removeVar', function(name:String)
-		{
-			if(PlayState.instance.variables.exists(name))
-			{
-				PlayState.instance.variables.remove(name);
-				return true;
+        for(k=>v in hscript.variables) {
+            Reflect.setField(superVar, k, v);
+        }
+        set("this", hscript);
+		set("super", superVar);
+
+        set("import", function(className:String) {
+            var splitClassName = [for (e in className.split(".")) e.trim()];
+            var realClassName = splitClassName.join(".");
+            var cl = Type.resolveClass(realClassName);
+            var en = Type.resolveEnum(realClassName);
+            if (en != null) {
+                // ENUM!!!!
+                var enumThingy = {};
+                for(c in en.getConstructors()) {
+                    Reflect.setField(enumThingy, c, en.createByName(c));
+                }
+                set(splitClassName[splitClassName.length - 1], enumThingy);
+            } else if (cl != null) {
+                // CLASS!!!!
+                set(splitClassName[splitClassName.length - 1], cl);
+            }
+        });
+
+        set("makeLuaCharacter", function(tag:String, char:String, ?isPlayer:Bool = false, x:Float, y:Float) {
+			tag = tag.replace('.', '');
+			resetCharacterTag(tag);
+			resetGroupTag(tag + 'Group');
+			var leGroup:ModchartGroup = new ModchartGroup(x, y);
+			var leCharacter:ModchartCharacter = new ModchartCharacter(0, 0, char, isPlayer);
+
+			PlayState.instance.startCharacterPos(leCharacter, !isPlayer);
+			PlayState.instance.startCharacterHaxe(leCharacter.curCharacter);
+			PlayState.instance.startCharacterLua(leCharacter.curCharacter);
+            PlayState.instance.modchartCharacters.set(tag, leCharacter);
+			PlayState.instance.modchartGroups.set(tag + 'Group', leGroup);
+        });
+        set("addLuaCharacter", function(tag:String, front:Bool = false, ?layersName:String = 'boyfriend') {
+			if(PlayState.instance.modchartCharacters.exists(tag) && PlayState.instance.modchartGroups.exists(tag + 'Group')) {
+				var shit:ModchartCharacter = PlayState.instance.modchartCharacters.get(tag);
+				var shitGroup:ModchartGroup = PlayState.instance.modchartGroups.get(tag + 'Group');
+				if(!shitGroup.wasAdded && !shit.wasAdded) {
+					if(isStage)
+					{
+						if(front)
+						{
+							var layersCharacter:String = 'boyfriend';
+							switch(layersName)
+							{
+								case 'gf'|'girlfriend':
+									layersCharacter = 'gf';
+								case 'dad'|'opponent':
+									layersCharacter = 'dad';
+							}
+							Stage.instance.layers.get(layersCharacter).add(shitGroup);
+						}
+						else
+						{
+							Stage.instance.add(shitGroup);
+						}
+							
+					}
+					else
+					{
+						if(front)
+						{
+							PlayState.instance.add(shitGroup);
+						}
+	
+						if(PlayState.instance.isDead)
+						{
+							GameOverSubstate.instance.insert(GameOverSubstate.instance.members.indexOf(GameOverSubstate.instance.boyfriend), shitGroup);
+						}
+						else
+						{
+							var position:Int = PlayState.instance.members.indexOf(PlayState.instance.gfGroup);
+							if(PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup) < position) {
+								position = PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup);
+							} else if(PlayState.instance.members.indexOf(PlayState.instance.dadGroup) < position) {
+								position = PlayState.instance.members.indexOf(PlayState.instance.dadGroup);
+							}
+							PlayState.instance.insert(position, shitGroup);
+						}
+					}
+					shit.wasAdded = true;
+					shitGroup.wasAdded = true;
+					shitGroup.add(shit);
+					//trace('added a thing: ' + tag);
+				}
 			}
-			return false;
-		});
-    //Heh Why not I added this?
-    interp.variables.set('addLibrary', function(libName:String, ?libFolder:String = '')
-    {
-			try {
-				var str:String = '';
-				if(libFolder.length > 0)
-					str = libFolder + '.';
+        });
+        set("add", function(obj:FlxBasic, ?front:Bool = false, ?layersName:String = 'boyfriend') {
 
-				set(libName, Type.resolveClass(str + libName));
-			}
-    });
-    interp.execute(parsedstring);
-    hscriptArray.set(script, interp);
-    call('onCreate', []);
-    #end
-  }
+            if(isStage) {
+                if(front)
+                {
+                    var layersCharacter:String = 'boyfriend';
+                    switch(layersName)
+                    {
+                        case 'gf'|'girlfriend':
+                            layersCharacter = 'gf';
+                        case 'dad'|'opponent':
+                            layersCharacter = 'dad';
+                    }
+                    Stage.instance.layers.get(layersCharacter).add(obj);
+                }
+                else
+                {
+                    Stage.instance.add(obj);
+                }
+            }
+            else
+            {
+                if(front)
+                {
+                    PlayState.instance.add(obj);
+                }
+                else
+                {
+                    if(PlayState.instance.isDead)
+					{
+						GameOverSubstate.instance.insert(GameOverSubstate.instance.members.indexOf(GameOverSubstate.instance.boyfriend), obj);
+					}
+					else
+					{
+						var position:Int = PlayState.instance.members.indexOf(PlayState.instance.gfGroup);
+						if(PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup) < position) {
+							position = PlayState.instance.members.indexOf(PlayState.instance.boyfriendGroup);
+						} else if(PlayState.instance.members.indexOf(PlayState.instance.dadGroup) < position) {
+							position = PlayState.instance.members.indexOf(PlayState.instance.dadGroup);
+						}
+						PlayState.instance.insert(position, obj);
+					}
+                }
+            }
+        });
+        set("remove", function(obj:FlxBasic, ?front:Bool = false, ?layersName:String = 'boyfriend') {
+            if(isStage) {
+                if(front)
+                {
+                    var layersCharacter:String = 'boyfriend';
+                    switch(layersName)
+                    {
+                        case 'gf'|'girlfriend':
+                            layersCharacter = 'gf';
+                        case 'dad'|'opponent':
+                            layersCharacter = 'dad';
+                    }
+                    Stage.instance.layers.get(layersCharacter).remove(obj);
+                }
+                else
+                {
+                    Stage.instance.remove(obj);
+                }
+            }
+            else
+            {
+                if(front)
+                {
+                    PlayState.instance.remove(obj);
+                }
+                else
+                {
+                    if(PlayState.instance.isDead)
+					{
+						GameOverSubstate.instance.remove(obj);
+					}
+					else
+					{
+						PlayState.instance.remove(obj);
+					}
+                }
+            }
+        });
+        if(PlayState.instance != null)
+        {
+            set("PlayState", PlayState);
+            set("game", PlayState.instance);
+        }
 
-  public function set(variable:String, data:Dynamic) {
-    #if hscript
-    interp.variables.set(variable, data);
-    #end
-  }
-  
-  function callSingleHScript(func:String, args:Array<Dynamic>, filename:String) {
-    #if hscript
-		if (!hscriptArray.get(filename).variables.exists(func)) {
-			//trace("I can't find function with name: " + func); this is annoyned tbh
+        set("FlxSprite", FlxSprite);
+		set("Alphabet", Alphabet);
+		set("BitmapData", BitmapData);
+		set("FlxBackdrop", FlxBackdrop);
+		set("FlxG", FlxG);
+		set("Paths", Paths);
+		set("Std", Std);
+		set("Math", Math);
+		set("FlxMath", FlxMath);
+		set("FlxAssets", FlxAssets);
+        set("Assets", Assets);
+		set("Note", Note);
+		set("Character", Character);
+        set("Stage", Stage);
+		set("Conductor", Conductor);
+		set("StringTools", StringTools);
+		set("FlxSound", FlxSound);
+		set("FlxEase", FlxEase);
+		set("FlxTween", FlxTween);
+		set("FlxPoint", flixel.math.FlxPoint);
+		set("Boyfriend", Boyfriend);
+		set("FlxTypedGroup", FlxTypedGroup);
+		set("BackgroundDancer", BackgroundDancer);
+		set("BackgroundGirls", BackgroundGirls);
+		set("FlxTimer", FlxTimer);
+		set("Json", Json);
+		set("MP4Handler", MP4Handler);
+		set("CoolUtil", CoolUtil);
+		set("FlxTypeText", FlxTypeText);
+		set("FlxText", FlxText);
+		set("Rectangle", Rectangle);
+        set("Lib", openfl.Lib);
+		set("Point", Point);
+		set("Window", Application.current.window);
+        set("GameOverSubstate", GameOverSubstate);
+		set("FlxAxes", FlxAxes);
+        set("ClientPrefs", ClientPrefs);
+        set("AtlasFrameMaker", AtlasFrameMaker);
+        set("FlxTilemap", FlxTilemap);
+        set("BlendMode", {
+            ADD: BlendMode.ADD,
+            ALPHA: BlendMode.ALPHA,
+            DARKEN: BlendMode.DARKEN,
+            DIFFERENCE: BlendMode.DIFFERENCE,
+            ERASE: BlendMode.ERASE,
+            HARDLIGHT: BlendMode.HARDLIGHT,
+            INVERT: BlendMode.INVERT,
+            LAYER: BlendMode.LAYER,
+            LIGHTEN: BlendMode.LIGHTEN,
+            MULTIPLY: BlendMode.MULTIPLY,
+            NORMAL: BlendMode.NORMAL,
+            OVERLAY: BlendMode.OVERLAY,
+            SCREEN: BlendMode.SCREEN,
+            SHADER: BlendMode.SHADER,
+            SUBTRACT: BlendMode.SUBTRACT
+        });
+        set("FlxColor", FlxColorHelper);
+
+        hscript.execute(getExpressionFromPath(script, true));
+        call('create', []);
+    }
+    
+    public function call(func:String, ?args:Array<Dynamic>):Dynamic {
+        #if hscript
+        if (hscript == null)
+            return Function_Continue;
+		if (hscript.variables.exists(func)) {
+            var f = hscript.variables.get(func);
+            if (Reflect.isFunction(f)) {
+                if (args == null || args.length < 1)
+                    return f();
+                else
+                    return Reflect.callMethod(null, f, args);
+            }
+		}
+        #end
+        return Function_Continue;
+    }
+
+    public function set(name:String, val:Dynamic) {
+        hscript.variables.set(name, val);
+        @:privateAccess
+        hscript.locals.set(name, {r: val});
+    }
+
+    public function get(name:String):Dynamic {
+        if (@:privateAccess hscript.locals.exists(name) && @:privateAccess hscript.locals[name] != null) {
+            @:privateAccess
+            return hscript.locals.get(name).r;
+        } else if (hscript.variables.exists(name))
+            return hscript.variables.get(name);
+
+        return null;
+    }
+
+    public function stop() {
+        if(hscript == null) {
 			return;
 		}
-		var method = hscriptArray.get(filename).variables.get(func);
-		if (args.length == 0) {
-			method();
-		} else if (args.length == 1) {
-			method(args[0]);
+
+		hscript = null;
+    }
+
+    function getExpressionFromPath(path:String, critical:Bool = false):hscript.Expr {
+        var ast:Expr = null;
+        try {
+			var cachePath = path.toLowerCase();
+			var fileData = FileSystem.stat(path);
+            var content = sys.io.File.getContent(path);
+            ast = getExpressionFromString(content, critical, path);
+        } catch(ex) {
+            if (!openfl.Lib.application.window.fullscreen && critical) openfl.Lib.application.window.alert('Could not read the file at "$path".');
+            trace('Could not read the file at "$path".');
+        }
+        return ast;
+    }
+
+    function getExpressionFromString(code:String, critical:Bool = false, ?path:String):hscript.Expr {
+        if (code == null) return null;
+        var parser = new hscript.Parser();
+		parser.allowTypes = true;
+        var ast:Expr = null;
+		try {
+			ast = parser.parseString(code);
+		} catch(ex) {
+			trace(ex);
+            var exThingy = Std.string(ex);
+            var line = parser.line;
+            if (path != null) {
+                if (!openfl.Lib.application.window.fullscreen && critical) openfl.Lib.application.window.alert('Failed to parse the file located at "$path".\r\n$exThingy at $line');
+                trace('Failed to parse the file located at "$path".\r\n$exThingy at $line');
+            } else {
+                if (!openfl.Lib.application.window.fullscreen && critical) openfl.Lib.application.window.alert('Failed to parse the given code.\r\n$exThingy at $line');
+                trace('Failed to parse the given code.\r\n$exThingy at $line');
+                if (!critical) throw new Exception('Failed to parse the given code.\r\n$exThingy at $line');
+            }
 		}
-    #end
+        return ast;
+    }
+
+
+    function resetGroupTag(tag:String) {
+		if(!PlayState.instance.modchartGroups.exists(tag)) {
+			return;
+		}
+
+		var pee:ModchartGroup = PlayState.instance.modchartGroups.get(tag);
+		pee.kill();
+		if(pee.wasAdded) {
+			PlayState.instance.remove(pee, true);
+		}
+		pee.destroy();
+		PlayState.instance.modchartGroups.remove(tag);
 	}
 
-	public function call(func:String, args:Array<Dynamic>):Dynamic {
-    #if hscript
-		for (i in hscriptArray.keys()) {
-			callSingleHScript(func, args, i);	// it could be easier ig
-      return Function_Continue;
+	function resetCharacterTag(tag:String) {
+		if(!PlayState.instance.modchartCharacters.exists(tag)) {
+			return;
 		}
-    #end
-    return Function_Continue;
+
+		var pee:ModchartCharacter = PlayState.instance.modchartCharacters.get(tag);
+		pee.kill();
+		if(pee.wasAdded) {
+			PlayState.instance.remove(pee, true);
+		}
+		pee.destroy();
+		PlayState.instance.modchartCharacters.remove(tag);
 	}
 }
