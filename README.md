@@ -1,12 +1,15 @@
-# Friday Night Funkin' - Psych Engine
+# Friday Night Funkin' - Psych Cover Engine
 Engine originally used on [Mind Games Mod](https://gamebanana.com/mods/301107), intended to be a fix for the vanilla version's many issues while keeping the casual play aspect of it. Also aiming to be an easier alternative to newbie coders.
 
 ## Installation:
 You must have [the most up-to-date version of Haxe](https://haxe.org/download/), seriously, stop using 4.1.5, it misses some stuff.
 
-Follow a Friday Night Funkin' source code compilation tutorial, after this you will need to install LuaJIT.
+Follow a Friday Night Funkin' source code compilation tutorial, after this you will need to install LuaJIT and Hscript.
 
 To install LuaJIT do this: `haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit` on a Command prompt/PowerShell
+
+To install Hscript do this: `haxelib git hscript https://github.com/YoshiCrafter29/hscript-improved` on a Command prompt/PowerShell
+(Basically I use YoshiEngine Hscript support because is B E T T E R)
 
 ...Or if you don't want your mod to be able to run .lua scripts, delete the "LUA_ALLOWED" line on Project.xml
 
