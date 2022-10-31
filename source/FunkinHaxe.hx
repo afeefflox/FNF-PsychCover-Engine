@@ -352,7 +352,7 @@ class FunkinHaxe
     public function set(name:String, val:Dynamic) {
         hscript.variables.set(name, val);
         @:privateAccess
-        hscript.locals.set(name, {r: val});
+        hscript.locals.set(name, val);
     }
 
     public function get(name:String):Dynamic {
